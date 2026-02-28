@@ -3,16 +3,16 @@
 summarize = [
     "google_project_iam_member",
     "google_project_iam_binding",
-    "google_storage_bucket_iam_member"
+    "google_storage_bucket_iam_member",
 ]
 
 # Ressources à ignorer totalement du rapport
 ignore = [
     "random_id",
-    "null_resource"
+    "null_resource",
 ]
 
 [output]
 # Options de rendu par défaut
+emoji_set = "sparkles"            # On pourrait imaginer différents sets d'emojis
 show_unchanged_attributes = false
-emoji_set = "sparkles" # On pourrait imaginer différents sets d'emojis
