@@ -1,0 +1,18 @@
+[filters]
+# Ressources dont on ne veut voir que le titre (pas de diff détaillé)
+summarize = [
+    "google_project_iam_member",
+    "google_project_iam_binding",
+    "google_storage_bucket_iam_member"
+]
+
+# Ressources à ignorer totalement du rapport
+ignore = [
+    "random_id",
+    "null_resource"
+]
+
+[output]
+# Options de rendu par défaut
+show_unchanged_attributes = false
+emoji_set = "sparkles" # On pourrait imaginer différents sets d'emojis

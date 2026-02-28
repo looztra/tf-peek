@@ -1,0 +1,83 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = [
+    "hatchling",
+    "versioningit>=3.1.2",
+]
+
+[project]
+authors = [
+    { name = "Christophe Furmaniak", email = "christophe.furmaniak@gmail.com" },
+]
+classifiers = [
+    "Topic :: Utilities",
+    # Specify the Python versions you support here.
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "jinja2>=3.1.6",
+    "pydantic>=2.12.5",
+    "rich>=14.3.3",
+    "typer>=0.24.1",
+]
+description = "Add your description here"
+dynamic = [
+    "version",
+]
+license = "Apache-2.0"
+name = "tf-peek"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[project.urls]
+Repository = "https://github.com/looztra/tf-peek"
+
+[project.scripts]
+tf-peek = "tf_peek.main:app"
+
+[dependency-groups]
+dev = [
+    "tox>=4.2",
+    "faker>=36.0",
+    "poethepoet>=0.29.0",
+    "pylint>=3.3.0",
+    "pyright>=1.1.384",
+    "pytest-cov>=6.0",
+    "pytest-mock>=3.14.0",
+    "pytest-unordered>=0.6.1",
+    "pytest>=8.3.3",
+    "ruff>=0.9.6",
+    "tox-uv>=1.23.2",
+    "taplo>=0.9.3",
+]
+
+[tool.hatch.version]
+source = "versioningit"
+
+[tool.hatch.build.targets.wheel]
+include = [
+    "src/tf_peek",
+]
+
+[tool.hatch.build.targets.wheel.sources]
+"src/tf_peek" = "tf_peek"
+
+[tool.versioningit]
+default-version = "0.0.0.dev0+0"
+
+[tool.versioningit.vcs]
+default-tag = "v0.0.0"
+
+[tool.versioningit.format]
+# Format used when there have been commits since the most recent tag:
+distance = "{next_version}.dev{distance}"
+
+# Format used when there are uncommitted changes:
+dirty = "{base_version}+dirty{build_date:%Y%m%d}"
+
+# Format used when there are both commits and uncommitted changes:
+distance-dirty = "{next_version}.dev{distance}+{vcs}{rev}.d{build_date:%Y%m%d}"

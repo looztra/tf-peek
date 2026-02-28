@@ -1,0 +1,31 @@
+### 🚀 Terraform Plan Summary
+
+| Action | Count |
+| :--- | :---: |
+| 🟢 Create | {{ summary.create }} |
+| 🟡 Update | {{ summary.update }} |
+| 🔴 Delete | {{ summary.delete }} |
+| 🔄 Replace | {{ summary.replace }} |
+
+---
+
+### 🔍 Resource Details
+
+{% for res in resources %}
+<details>
+<summary><b>{{ res.emoji }} {{ res.address }}</b> ({{ res.type }})</summary>
+
+{% if res.is_summarized %}
+> ℹ️ *Détails masqués par configuration (ressource filtrée).*
+{% elif res.diff %}
+| Property | Before | After |
+| :--- | :--- | :--- |
+{% for attr, val in res.diff.items() %}
+| `{{ attr }}` | `{{ val.before | default('null', true) }}` | `{{ val.after | default('null', true) }}` |
+{% endfor %}
+{% else %}
+*Aucun changement d'attribut détecté (changement de tag ou métadonnée).*
+{% endif %}
+
+</details>
+{% endfor %}
