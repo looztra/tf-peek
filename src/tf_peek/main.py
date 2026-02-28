@@ -23,7 +23,7 @@ def get_emoji(action: str) -> str:
 def calculate_diff(
     before: dict[str, Any] | None, after: dict[str, Any] | None, unknown: dict[str, Any] | None
 ) -> dict[str, dict[str, Any]]:
-    """Compare before/after et gère les valeurs 'known after apply'."""
+    """Compare before/after and handle 'known after apply' values."""
     diff = {}
     before = before or {}
     after = after or {}
@@ -35,7 +35,7 @@ def calculate_diff(
         val_before = before.get(k)
         val_after = after.get(k)
 
-        # Si la valeur est marquée comme inconnue dans le plan
+        # If the value is marked as unknown in the plan
         if k in unknown and unknown[k] is True:
             val_after = "(known after apply) ⏳"
 
@@ -46,7 +46,7 @@ def calculate_diff(
 
 @app.command()
 def generate(
-    json_path: Path = typer.Argument(..., help="Fichier JSON du plan"),
+    json_path: Path = typer.Argument(..., help="JSON plan file"),
     config_file: Path | None = typer.Option(None, "--config", "-c"),
 ) -> None:
     """Generate a markdown report from a terraform plan JSON."""
@@ -80,7 +80,7 @@ def generate(
             }
         )
 
-    # Rendu Jinja2
+    # Jinja2 rendering
     env = Environment(loader=FileSystemLoader(Path(__file__).parent / "templates"), autoescape=True)
     template = env.get_template("report.md.j2")
     rich.print(template.render(summary=summary, resources=resources_to_render))

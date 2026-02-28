@@ -3,7 +3,7 @@
     "ruff:fmt:check",
     "ruff:lint",
     "pylint",
-    "pyright",
+    "ty:check",
 ]
 pylint = [
     "pylint:run",
@@ -25,3 +25,4 @@ test = "pytest"
 "test:cov" = [
     "pytest:cov",
 ]
+"ty:check" = "ty check"

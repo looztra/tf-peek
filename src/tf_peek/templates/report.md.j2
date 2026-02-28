@@ -2,10 +2,11 @@
 
 | Action | Count |
 | :--- | :---: |
-| 🟢 Create | {{ summary.create }} |
-| 🟡 Update | {{ summary.update }} |
-| 🔴 Delete | {{ summary.delete }} |
-| 🔄 Replace | {{ summary.replace }} |
+| 🟢 Create | {{ summary['create'] }} |
+| 🟡 Update | {{ summary['update'] }} |
+| 🔴 Delete | {{ summary['delete'] }} |
+| 🔄 Replace | {{ summary['replace'] }} |
+| **Σ Total** | **{{ summary['create'] + summary['update'] + summary['delete'] + summary['replace'] }}** |
 
 ---
 
@@ -16,7 +17,7 @@
 <summary><b>{{ res.emoji }} {{ res.address }}</b> ({{ res.type }})</summary>
 
 {% if res.is_summarized %}
-> ℹ️ *Détails masqués par configuration (ressource filtrée).*
+> ℹ️ *Details hidden by configuration (filtered resource).*
 {% elif res.diff %}
 | Property | Before | After |
 | :--- | :--- | :--- |
@@ -24,7 +25,7 @@
 | `{{ attr }}` | `{{ val.before | default('null', true) }}` | `{{ val.after | default('null', true) }}` |
 {% endfor %}
 {% else %}
-*Aucun changement d'attribut détecté (changement de tag ou métadonnée).*
+*No attribute changes detected (tag or metadata change).*
 {% endif %}
 
 </details>

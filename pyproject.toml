@@ -31,7 +31,7 @@ dynamic = [
 license = "Apache-2.0"
 name = "tf-peek"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 [project.urls]
 Repository = "https://github.com/looztra/tf-peek"
@@ -53,6 +53,7 @@ dev = [
     "ruff>=0.9.6",
     "tox-uv>=1.23.2",
     "taplo>=0.9.3",
+    "ty>=0.0.19",
 ]
 
 [tool.hatch.version]
