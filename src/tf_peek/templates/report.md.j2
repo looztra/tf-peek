@@ -1,4 +1,5 @@
-### 🚀 Terraform Plan Summary
+# Terraform Plan Report
+## 🚀 Terraform Plan Summary
 
 | Action | Count |
 | :--- | :---: |
@@ -10,10 +11,10 @@
 
 ---
 
-### 🔍 Resource Details
+## 🔍 Resource Details
 
 {% for module_name, resources in resources_by_module.items() %}
-#### 📦 Module: `{{ module_name }}`
+### 📦 Module: `{{ module_name }}`
 
 {% for res in resources %}
 <details>

@@ -49,6 +49,9 @@ def calculate_diff(
 def generate(
     json_path: Path = typer.Argument(..., help="JSON plan file"),
     config_file: Path | None = typer.Option(None, "--config", "-c"),
+    output_file: Path | None = typer.Option(
+        None, "--output", "-o", help="Output file for markdown report (default: stdout)"
+    ),
 ) -> None:
     """Generate a markdown report from a terraform plan JSON."""
     config = load_config(config_file)
@@ -60,7 +63,7 @@ def generate(
     resources_to_render = defaultdict(list)
 
     for rc in plan.resource_changes:
-        if rc.simple_action == "no-op" or any(rc.type.startswith(p) for p in config.ignore):
+        if rc.simple_action in ("no-op", "read") or any(rc.type.startswith(p) for p in config.ignore):
             continue
 
         summary[rc.simple_action] += 1
@@ -84,12 +87,20 @@ def generate(
     # Jinja2 rendering
     env = Environment(
         loader=FileSystemLoader(Path(__file__).parent / "templates"),
-        autoescape=True,
+        autoescape=False,  # noqa: S701
         trim_blocks=True,
         lstrip_blocks=True,
     )
     template = env.get_template("report.md.j2")
-    rich.print(template.render(summary=summary, resources_by_module=resources_to_render))
+    rendered_content = template.render(summary=summary, resources_by_module=resources_to_render)
+
+    if output_file:
+        if output_file.exists():
+            typer.echo(f"Overwriting {output_file}")
+        output_file.write_text(rendered_content)
+        typer.echo(f"Report written to {output_file}")
+    else:
+        rich.print(rendered_content)
 
 
 if __name__ == "__main__":
