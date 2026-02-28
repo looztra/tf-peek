@@ -1,35 +1,52 @@
 # Terraform Plan Report
+
 ## 🚀 Terraform Plan Summary
 
 | Action | Count |
 | :--- | :---: |
-| ➕ Create | {{ summary['create'] }} |
-| 🛠️ Update | {{ summary['update'] }} |
 | ➖ Delete | {{ summary['delete'] }} |
 | ⚠️ Replace | {{ summary['replace'] }} |
+| 🛠️ Update | {{ summary['update'] }} |
+| ➕ Create | {{ summary['create'] }} |
 | **Σ Total** | **{{ summary['create'] + summary['update'] + summary['delete'] + summary['replace'] }}** |
+
+### Changes by Resource Type
+
+<details>
+<summary><b>View changes by Resource Type</b></summary>
+
+| Resource Type | ➖ Delete | ⚠️ Replace | 🛠️ Update | ➕ Create | **Total** |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+{% for item in type_action_counts %}
+| `{{ item.type }}` | {{ item.count_delete }} | {{ item.count_replace }} | {{ item.count_update }} | {{ item.count_create }} | **{{ item.total }}** |
+{% endfor %}
+</details>
 
 ---
 
 ## 🔍 Resource Details
 
-{% for module_name, resources in resources_by_module.items() %}
-### 📦 Module: `{{ module_name }}`
+{% for action in action_order %}
+{% set resources_by_type = resources_by_action[action] %}
+### {{ get_emoji(action) }} {{ action | capitalize }}
+
+{% for rtype, resources in resources_by_type.items() %}
+#### `{{ rtype }}`
 
 {% for res in resources %}
 <details>
-<summary><b>{{ res.emoji }} {{ res.address.removeprefix(module_name ~ '.') }}</b> ({{ res.type }})</summary>
+<summary><b>{{ res.address }}</b></summary>
 
 {% if res.is_summarized %}
 > ℹ️ *Details hidden by configuration (filtered resource).*
 {% elif res.diff %}
-{% if res.action == 'create' %}
+{% if action == 'create' %}
 | Property | Value |
 | :--- | :--- |
 {% for attr, val in res.diff.items() %}
 | `{{ attr }}` | `{{ val.after | default('null', true) }}` |
 {% endfor %}
-{% elif res.action == 'delete' %}
+{% elif action == 'delete' %}
 | Property | Value |
 | :--- | :--- |
 {% for attr, val in res.diff.items() %}
@@ -47,6 +64,8 @@
 {% endif %}
 
 </details>
+{% endfor %}
+
 {% endfor %}
 
 {% endfor %}

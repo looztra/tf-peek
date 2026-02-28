@@ -59,30 +59,52 @@ def generate(
     with json_path.open() as f:
         plan = TerraformPlan(**json.load(f))
 
-    summary = {"create": 0, "update": 0, "delete": 0, "replace": 0}
-    resources_to_render = defaultdict(list)
+    action_order = ["delete", "replace", "update", "create"]
+    summary: dict[str, int] = {"create": 0, "update": 0, "delete": 0, "replace": 0}
+    type_action_counts: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    resources_by_action: dict[str, dict[str, list[dict[str, Any]]]] = {
+        action: defaultdict(list) for action in action_order
+    }
 
     for rc in plan.resource_changes:
         if rc.simple_action in ("no-op", "read") or any(rc.type.startswith(p) for p in config.ignore):
             continue
 
         summary[rc.simple_action] += 1
+        type_action_counts[rc.type][rc.simple_action] += 1
         is_summarized = any(rc.type.startswith(p) for p in config.summarize)
 
         diff = {}
         if not is_summarized:
             diff = calculate_diff(rc.change.before, rc.change.after, rc.change.after_unknown)
 
-        resources_to_render[rc.module_address].append(
+        resources_by_action[rc.simple_action][rc.type].append(
             {
                 "address": rc.address,
-                "type": rc.type,
                 "action": rc.simple_action,
                 "emoji": get_emoji(rc.simple_action),
                 "is_summarized": is_summarized,
                 "diff": diff,
             }
         )
+
+    # Sort types alphabetically within each action
+    resources_to_render = {
+        action: dict(sorted(by_type.items())) for action, by_type in resources_by_action.items() if by_type
+    }
+    # Sort types alphabetically and convert to list of dicts with action counts
+    # Use prefixed keys to avoid conflicts with dict methods
+    sorted_type_action_counts = [
+        {
+            "type": rtype,
+            "count_delete": dict(counts).get("delete", 0),
+            "count_replace": dict(counts).get("replace", 0),
+            "count_update": dict(counts).get("update", 0),
+            "count_create": dict(counts).get("create", 0),
+            "total": sum(counts.values()),
+        }
+        for rtype, counts in sorted(type_action_counts.items())
+    ]
 
     # Jinja2 rendering
     env = Environment(
@@ -92,7 +114,13 @@ def generate(
         lstrip_blocks=True,
     )
     template = env.get_template("report.md.j2")
-    rendered_content = template.render(summary=summary, resources_by_module=resources_to_render)
+    rendered_content = template.render(
+        summary=summary,
+        type_action_counts=sorted_type_action_counts,
+        resources_by_action=resources_to_render,
+        action_order=[a for a in action_order if a in resources_to_render],
+        get_emoji=get_emoji,
+    )
 
     if output_file:
         if output_file.exists():
