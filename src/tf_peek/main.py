@@ -17,7 +17,7 @@ app = typer.Typer()
 
 def get_emoji(action: str) -> str:
     """Return an emoji representation of a terraform action."""
-    mapping = {"create": "🟢", "update": "🟡", "delete": "🔴", "replace": "🔄", "no-op": "⚪"}
+    mapping = {"create": "➕", "update": "🛠️", "delete": "➖", "replace": "⚠️", "no-op": "🔹"}  # noqa: RUF001
     return mapping.get(action, "❓")
 
 
@@ -82,7 +82,12 @@ def generate(
         )
 
     # Jinja2 rendering
-    env = Environment(loader=FileSystemLoader(Path(__file__).parent / "templates"), autoescape=True)
+    env = Environment(
+        loader=FileSystemLoader(Path(__file__).parent / "templates"),
+        autoescape=True,
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
     template = env.get_template("report.md.j2")
     rich.print(template.render(summary=summary, resources_by_module=resources_to_render))
 

@@ -2,10 +2,10 @@
 
 | Action | Count |
 | :--- | :---: |
-| 🟢 Create | {{ summary['create'] }} |
-| 🟡 Update | {{ summary['update'] }} |
-| 🔴 Delete | {{ summary['delete'] }} |
-| 🔄 Replace | {{ summary['replace'] }} |
+| ➕ Create | {{ summary['create'] }} |
+| 🛠️ Update | {{ summary['update'] }} |
+| ➖ Delete | {{ summary['delete'] }} |
+| ⚠️ Replace | {{ summary['replace'] }} |
 | **Σ Total** | **{{ summary['create'] + summary['update'] + summary['delete'] + summary['replace'] }}** |
 
 ---
@@ -17,7 +17,7 @@
 
 {% for res in resources %}
 <details>
-<summary><b>{{ res.emoji }} {{ res.address }}</b> ({{ res.type }})</summary>
+<summary><b>{{ res.emoji }} {{ res.address.removeprefix(module_name ~ '.') }}</b> ({{ res.type }})</summary>
 
 {% if res.is_summarized %}
 > ℹ️ *Details hidden by configuration (filtered resource).*

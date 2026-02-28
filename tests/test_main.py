@@ -5,11 +5,11 @@ from tf_peek.main import calculate_diff, get_emoji
 
 def test_get_emoji() -> None:
     """Test get_emoji returns correct emojis."""
-    assert get_emoji("create") == "🟢"
-    assert get_emoji("update") == "🟡"
-    assert get_emoji("delete") == "🔴"
-    assert get_emoji("replace") == "🔄"
-    assert get_emoji("no-op") == "⚪"
+    assert get_emoji("create") == "➕"  # noqa: RUF001
+    assert get_emoji("update") == "🛠️"
+    assert get_emoji("delete") == "➖"  # noqa: RUF001
+    assert get_emoji("replace") == "⚠️"
+    assert get_emoji("no-op") == "🔹"
     assert get_emoji("unknown") == "❓"
 
 
