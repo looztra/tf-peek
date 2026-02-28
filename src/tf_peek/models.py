@@ -18,6 +18,7 @@ class ResourceChange(BaseModel):
     """Represents a terraform resource change."""
 
     address: str
+    module_address: str = "root"
     type: str
     name: str
     change: Change

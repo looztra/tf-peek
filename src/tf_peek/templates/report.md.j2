@@ -12,6 +12,9 @@
 
 ### 🔍 Resource Details
 
+{% for module_name, resources in resources_by_module.items() %}
+#### 📦 Module: `{{ module_name }}`
+
 {% for res in resources %}
 <details>
 <summary><b>{{ res.emoji }} {{ res.address }}</b> ({{ res.type }})</summary>
@@ -19,14 +22,30 @@
 {% if res.is_summarized %}
 > ℹ️ *Details hidden by configuration (filtered resource).*
 {% elif res.diff %}
+{% if res.action == 'create' %}
+| Property | Value |
+| :--- | :--- |
+{% for attr, val in res.diff.items() %}
+| `{{ attr }}` | `{{ val.after | default('null', true) }}` |
+{% endfor %}
+{% elif res.action == 'delete' %}
+| Property | Value |
+| :--- | :--- |
+{% for attr, val in res.diff.items() %}
+| `{{ attr }}` | `{{ val.before | default('null', true) }}` |
+{% endfor %}
+{% else %}
 | Property | Before | After |
 | :--- | :--- | :--- |
 {% for attr, val in res.diff.items() %}
 | `{{ attr }}` | `{{ val.before | default('null', true) }}` | `{{ val.after | default('null', true) }}` |
 {% endfor %}
+{% endif %}
 {% else %}
 *No attribute changes detected (tag or metadata change).*
 {% endif %}
 
 </details>
+{% endfor %}
+
 {% endfor %}

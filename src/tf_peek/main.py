@@ -1,6 +1,7 @@
 """Main CLI entrypoint for tf-peek."""
 
 import json
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -56,7 +57,7 @@ def generate(
         plan = TerraformPlan(**json.load(f))
 
     summary = {"create": 0, "update": 0, "delete": 0, "replace": 0}
-    resources_to_render = []
+    resources_to_render = defaultdict(list)
 
     for rc in plan.resource_changes:
         if rc.simple_action == "no-op" or any(rc.type.startswith(p) for p in config.ignore):
@@ -69,7 +70,7 @@ def generate(
         if not is_summarized:
             diff = calculate_diff(rc.change.before, rc.change.after, rc.change.after_unknown)
 
-        resources_to_render.append(
+        resources_to_render[rc.module_address].append(
             {
                 "address": rc.address,
                 "type": rc.type,
@@ -83,7 +84,7 @@ def generate(
     # Jinja2 rendering
     env = Environment(loader=FileSystemLoader(Path(__file__).parent / "templates"), autoescape=True)
     template = env.get_template("report.md.j2")
-    rich.print(template.render(summary=summary, resources=resources_to_render))
+    rich.print(template.render(summary=summary, resources_by_module=resources_to_render))
 
 
 if __name__ == "__main__":
