@@ -4,9 +4,10 @@ This document provides context and instructions for AI agents working on this re
 
 ## Project Overview
 
-- **Repository**: [looztra/yamkix](https://github.com/looztra/yamkix)
+- **Repository**: [looztra/yamkix](https://github.com/looztra/tf-peek)
 - **Language**: Python (managed via `uv`)
 - **Main Branch**: `main`
+- **Architecture documentation**: located in `docs/architecture`
 
 ## Workflow & Standards
 

@@ -81,6 +81,7 @@ def generate(
         resources_by_action[rc.simple_action][rc.type].append(
             {
                 "address": rc.address,
+                "short_address": f"{rc.type}.{rc.name}",
                 "action": rc.simple_action,
                 "emoji": get_emoji(rc.simple_action),
                 "is_summarized": is_summarized,
@@ -88,23 +89,29 @@ def generate(
             }
         )
 
-    # Sort types alphabetically within each action
+    # Sort types by total resource count (highest first) within each action
     resources_to_render = {
-        action: dict(sorted(by_type.items())) for action, by_type in resources_by_action.items() if by_type
+        action: dict(sorted(by_type.items(), key=lambda item: len(item[1]), reverse=True))
+        for action, by_type in resources_by_action.items()
+        if by_type
     }
-    # Sort types alphabetically and convert to list of dicts with action counts
+    # Sort types by total resource count (highest first) and convert to list of dicts with action counts
     # Use prefixed keys to avoid conflicts with dict methods
-    sorted_type_action_counts = [
-        {
-            "type": rtype,
-            "count_delete": dict(counts).get("delete", 0),
-            "count_replace": dict(counts).get("replace", 0),
-            "count_update": dict(counts).get("update", 0),
-            "count_create": dict(counts).get("create", 0),
-            "total": sum(counts.values()),
-        }
-        for rtype, counts in sorted(type_action_counts.items())
-    ]
+    sorted_type_action_counts = sorted(
+        [
+            {
+                "type": rtype,
+                "count_delete": dict(counts).get("delete", 0),
+                "count_replace": dict(counts).get("replace", 0),
+                "count_update": dict(counts).get("update", 0),
+                "count_create": dict(counts).get("create", 0),
+                "total": sum(counts.values()),
+            }
+            for rtype, counts in type_action_counts.items()
+        ],
+        key=lambda item: item["total"],
+        reverse=True,
+    )
 
     # Jinja2 rendering
     env = Environment(
