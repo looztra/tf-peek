@@ -8,7 +8,7 @@ The configuration file SHALL support a `[[resources]]` array-of-tables where eac
 - **THEN** `load_config()` returns a rule that classifies all resources with `rc.type == "null_resource"` as `silent`
 
 #### Scenario: Valid rule with match_pattern
-- **WHEN** a `[[resources]]` entry contains `match_pattern = 'module\\.prod\\..*\\.aiven_pg'` and `tier = "critical"`
+- **WHEN** a `[[resources]]` entry contains `match_pattern = 'module\\.prod\\..*\\.mukta_pg'` and `tier = "critical"`
 - **THEN** `load_config()` returns a rule that classifies resources whose address matches the pattern as `critical`
 
 #### Scenario: Rule with no match key raises error
@@ -34,7 +34,7 @@ Each `[[resources]]` entry that omits `tier` SHALL default to `tier = "normal"`.
 Each `[[resources]]` entry that omits `detail` SHALL default to `detail = "full"`. The `detail` field is only meaningful for `tier = "normal"` entries.
 
 #### Scenario: Entry without detail key
-- **WHEN** a `[[resources]]` entry has `match_type = "aiven_pg"` and no `detail` field
+- **WHEN** a `[[resources]]` entry has `match_type = "mukta_pg"` and no `detail` field
 - **THEN** the parsed rule has `detail = "full"`
 
 ### Requirement: critical_on defaults to delete and replace

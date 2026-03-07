@@ -30,7 +30,7 @@ The report structure today is: Summary → Changes by Type → Resource Details.
 
 ```toml
 [[resources]]
-match_type = "aiven_pg"        # OR match_pattern = "regex"
+match_type = "mukta_pg"        # OR match_pattern = "regex"
 tier = "critical"              # silent | normal | critical  (default: normal)
 detail = "full"                # full | summary              (default: full)
 critical_on = ["delete", "replace"]  # critical tier only   (default: ["delete", "replace"])
@@ -48,11 +48,11 @@ Exactly one of `match_type` or `match_pattern` must be present per entry.
 
 **Decision**: `match_pattern` values are Python `re.search()` patterns tested against the full resource address string.
 
-**Rationale**: Real Terraform addresses contain dynamic module keys with bracket notation (e.g., `module.aiven_postgresql["cfurmaniak-sbox-a2cv-pgsource"].aiven_pg.service`). Glob patterns cannot express "prod module only". Regex is the natural fit and already available in Python stdlib.
+**Rationale**: Real Terraform addresses contain dynamic module keys with bracket notation (e.g., `module.mukta_postgresql["yolo-0000-pgsource"].mukta_pg.service`). Glob patterns cannot express "prod module only". Regex is the natural fit and already available in Python stdlib.
 
 **Alternatives considered**:
 - Glob matching — insufficient expressiveness for nested module key filtering
-- Raw prefix matching — fragile (`aiven_p` matches both `aiven_pg` and `aiven_project_vpc`)
+- Raw prefix matching — fragile (`mukta_p` matches both `mukta_pg` and `mukta_project_vpc`)
 
 ---
 
