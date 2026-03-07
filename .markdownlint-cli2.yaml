@@ -12,3 +12,4 @@ globs:
   - '!.github/skills/**/*.md'
   - '!.github/prompts/**/*.md'
   - '!.gemini/skills/**/*.md'
+  - '!.claude/**/*.md'
