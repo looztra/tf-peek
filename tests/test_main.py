@@ -105,8 +105,8 @@ def test_tiered_summary_counts(tmp_path: Path) -> None:
     """Summary table reflects per-tier counts for each action."""
     plan = _make_plan(
         [
-            _rc_entry("aiven_pg", "prod", ["delete"]),  # critical delete → critical section
-            _rc_entry("aiven_pg", "dev", ["create"]),  # critical create → normal section
+            _rc_entry("mukta_pg", "prod", ["delete"]),  # critical delete → critical section
+            _rc_entry("mukta_pg", "dev", ["create"]),  # critical create → normal section
             _rc_entry("google_storage_bucket", "b1", ["create"]),  # normal create
             _rc_entry("null_resource", "nr1", ["create"]),  # silent create
             _rc_entry("null_resource", "nr2", ["delete"]),  # silent delete
@@ -114,7 +114,7 @@ def test_tiered_summary_counts(tmp_path: Path) -> None:
     )
     config = """
 [[resources]]
-match_type = "aiven_pg"
+match_type = "mukta_pg"
 tier = "critical"
 
 [[resources]]
@@ -125,7 +125,7 @@ tier = "silent"
 
     # Critical delete: 1, normal delete: 0, silent delete: 1
     assert "Delete" in report
-    # Critical create: 1 (aiven_pg.dev), normal create: 1 (bucket), silent create: 1
+    # Critical create: 1 (mukta_pg.dev), normal create: 1 (bucket), silent create: 1
     assert "Create" in report
     # The total row is present
     assert "Σ Total" in report
@@ -210,12 +210,12 @@ def test_critical_delete_in_critical_section_only(tmp_path: Path) -> None:
     """Critical delete appears in 🚨 section and NOT in 🔍 details."""
     plan = _make_plan(
         [
-            _rc_entry("aiven_pg", "prod", ["delete"], before={"plan": "business-4"}),
+            _rc_entry("mukta_pg", "prod", ["delete"], before={"plan": "business-4"}),
         ]
     )
     config = """
 [[resources]]
-match_type = "aiven_pg"
+match_type = "mukta_pg"
 tier = "critical"
 """
     report = _run_generate(plan, config, tmp_path)
@@ -228,20 +228,20 @@ tier = "critical"
     critical_section = report[critical_idx:details_idx]
     normal_section = report[details_idx:]
 
-    assert "aiven_pg.prod" in critical_section
-    assert "aiven_pg.prod" not in normal_section
+    assert "mukta_pg.prod" in critical_section
+    assert "mukta_pg.prod" not in normal_section
 
 
 def test_critical_create_in_normal_section(tmp_path: Path) -> None:
     """Critical create (not in default critical_on) goes to 🔍 details, not 🚨."""
     plan = _make_plan(
         [
-            _rc_entry("aiven_pg", "new_stack", ["create"], after={"plan": "startup-2"}),
+            _rc_entry("mukta_pg", "new_stack", ["create"], after={"plan": "startup-2"}),
         ]
     )
     config = """
 [[resources]]
-match_type = "aiven_pg"
+match_type = "mukta_pg"
 tier = "critical"
 # critical_on defaults to ["delete", "replace"] — create is NOT included
 """
@@ -249,7 +249,7 @@ tier = "critical"
 
     # No critical section (no delete/replace ops)
     assert "🚨 Critical Changes" not in report
-    assert "aiven_pg.new_stack" in report
+    assert "mukta_pg.new_stack" in report
 
 
 def test_critical_on_update_surfaces_in_critical_section(tmp_path: Path) -> None:
@@ -257,7 +257,7 @@ def test_critical_on_update_surfaces_in_critical_section(tmp_path: Path) -> None
     plan = _make_plan(
         [
             _rc_entry(
-                "aiven_pg",
+                "mukta_pg",
                 "svc",
                 ["update"],
                 before={"service_type": "pg"},
@@ -267,13 +267,13 @@ def test_critical_on_update_surfaces_in_critical_section(tmp_path: Path) -> None
     )
     config = """
 [[resources]]
-match_type = "aiven_pg"
+match_type = "mukta_pg"
 tier = "critical"
 critical_on = ["delete", "replace", "update"]
 """
     report = _run_generate(plan, config, tmp_path)
     assert "🚨 Critical Changes" in report
-    assert "aiven_pg.svc" in report.split("🔍 Resource Details")[0]
+    assert "mukta_pg.svc" in report.split("🔍 Resource Details")[0]
 
 
 def test_no_critical_section_when_no_critical_ops(tmp_path: Path) -> None:

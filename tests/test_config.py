@@ -23,8 +23,8 @@ def test_resource_rule_valid_match_type() -> None:
 
 def test_resource_rule_valid_match_pattern() -> None:
     """A rule with only match_pattern is valid when the pattern compiles."""
-    rule = ResourceRule(match_pattern=r"module\.prod\..*\.aiven_pg", tier="critical")
-    assert rule.match_pattern == r"module\.prod\..*\.aiven_pg"
+    rule = ResourceRule(match_pattern=r"module\.prod\..*\.mukta_pg", tier="critical")
+    assert rule.match_pattern == r"module\.prod\..*\.mukta_pg"
     assert rule.tier == "critical"
 
 
@@ -37,7 +37,7 @@ def test_resource_rule_missing_match_key_raises() -> None:
 def test_resource_rule_both_match_keys_raises() -> None:
     """A rule with both match_type and match_pattern raises ValueError."""
     with pytest.raises(ValueError, match="not both"):
-        ResourceRule(match_type="aiven_pg", match_pattern=r"aiven_pg", tier="critical")
+        ResourceRule(match_type="mukta_pg", match_pattern=r"mukta_pg", tier="critical")
 
 
 def test_resource_rule_invalid_regex_raises() -> None:
@@ -56,7 +56,7 @@ def test_resource_rule_defaults() -> None:
 
 def test_resource_rule_critical_on_custom() -> None:
     """critical_on can be overridden."""
-    rule = ResourceRule(match_type="aiven_pg", tier="critical", critical_on=["delete", "replace", "update"])
+    rule = ResourceRule(match_type="mukta_pg", tier="critical", critical_on=["delete", "replace", "update"])
     assert rule.critical_on == ["delete", "replace", "update"]
 
 
@@ -88,7 +88,7 @@ match_type = "null_resource"
 tier = "silent"
 
 [[resources]]
-match_type = "aiven_pg"
+match_type = "mukta_pg"
 tier = "critical"
 critical_on = ["delete", "replace", "update"]
 
@@ -107,7 +107,7 @@ detail = "summary"
     assert r0.tier == "silent"
 
     r1 = config.resources[1]
-    assert r1.match_type == "aiven_pg"
+    assert r1.match_type == "mukta_pg"
     assert r1.tier == "critical"
     assert r1.critical_on == ["delete", "replace", "update"]
 
@@ -123,12 +123,12 @@ def test_load_config_match_pattern(tmp_path: Path) -> None:
     config_file.write_text(
         r"""
 [[resources]]
-match_pattern = 'module\.prod\..*\.aiven_pg'
+match_pattern = 'module\.prod\..*\.mukta_pg'
 tier = "critical"
 """
     )
     config = load_config(config_file)
-    assert config.resources[0].match_pattern == r"module\.prod\..*\.aiven_pg"
+    assert config.resources[0].match_pattern == r"module\.prod\..*\.mukta_pg"
     assert config.resources[0].tier == "critical"
 
 
@@ -149,30 +149,30 @@ def _rc(rtype: str, address: str | None = None) -> ResourceChange:
 
 def test_resolve_tier_exact_type_match() -> None:
     """match_type matches via exact equality on rc.type."""
-    config = PeekConfig(resources=[ResourceRule(match_type="aiven_pg", tier="critical")])
-    rule = resolve_tier(_rc("aiven_pg"), config)
+    config = PeekConfig(resources=[ResourceRule(match_type="mukta_pg", tier="critical")])
+    rule = resolve_tier(_rc("mukta_pg"), config)
     assert rule.tier == "critical"
 
 
 def test_resolve_tier_no_partial_type_match() -> None:
     """match_type does NOT match on prefix — exact equality only."""
-    config = PeekConfig(resources=[ResourceRule(match_type="aiven_p", tier="critical")])
-    rule = resolve_tier(_rc("aiven_pg"), config)
+    config = PeekConfig(resources=[ResourceRule(match_type="mukta_p", tier="critical")])
+    rule = resolve_tier(_rc("mukta_pg"), config)
     assert rule.tier == "normal"  # falls back to default
 
 
 def test_resolve_tier_pattern_matches_address() -> None:
     """match_pattern matches via re.search on rc.address."""
-    config = PeekConfig(resources=[ResourceRule(match_pattern=r"aiven_postgresql\[.*-pgsource.*\]", tier="critical")])
-    address = 'module.stack.module.aiven_postgresql["cfurmaniak-sbox-a2cv-pgsource"].aiven_pg.service'
-    rule = resolve_tier(_rc("aiven_pg", address=address), config)
+    config = PeekConfig(resources=[ResourceRule(match_pattern=r"mukta_postgresql\[.*-pgsource.*\]", tier="critical")])
+    address = 'module.stack.module.mukta_postgresql["yolo-0000-pgsource"].mukta_pg.service'
+    rule = resolve_tier(_rc("mukta_pg", address=address), config)
     assert rule.tier == "critical"
 
 
 def test_resolve_tier_pattern_no_match() -> None:
     """match_pattern that does not match falls through to default."""
-    config = PeekConfig(resources=[ResourceRule(match_pattern=r"module\.prod\..*\.aiven_pg", tier="critical")])
-    rule = resolve_tier(_rc("aiven_pg", address="module.staging.aiven_pg.service"), config)
+    config = PeekConfig(resources=[ResourceRule(match_pattern=r"module\.prod\..*\.mukta_pg", tier="critical")])
+    rule = resolve_tier(_rc("mukta_pg", address="module.staging.mukta_pg.service"), config)
     assert rule.tier == "normal"
 
 
@@ -180,12 +180,12 @@ def test_resolve_tier_pattern_takes_priority_over_type() -> None:
     """match_pattern wins over match_type even if match_type comes first in config."""
     config = PeekConfig(
         resources=[
-            ResourceRule(match_type="aiven_pg", tier="normal"),
-            ResourceRule(match_pattern=r"module\.prod\..*\.aiven_pg", tier="critical"),
+            ResourceRule(match_type="mukta_pg", tier="normal"),
+            ResourceRule(match_pattern=r"module\.prod\..*\.mukta_pg", tier="critical"),
         ]
     )
-    address = "module.prod.resources.aiven_pg.service"
-    rule = resolve_tier(_rc("aiven_pg", address=address), config)
+    address = "module.prod.resources.mukta_pg.service"
+    rule = resolve_tier(_rc("mukta_pg", address=address), config)
     assert rule.tier == "critical"
 
 
@@ -203,7 +203,7 @@ def test_resolve_tier_first_match_type_wins() -> None:
 
 def test_resolve_tier_no_match_returns_default() -> None:
     """Returns default rule (normal/full) when nothing matches."""
-    config = PeekConfig(resources=[ResourceRule(match_type="aiven_pg", tier="critical")])
+    config = PeekConfig(resources=[ResourceRule(match_type="mukta_pg", tier="critical")])
     rule = resolve_tier(_rc("google_storage_bucket"), config)
     assert rule.tier == "normal"
     assert rule.detail == "full"
