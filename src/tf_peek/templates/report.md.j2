@@ -18,7 +18,7 @@
 | Resource Type | ➖ Delete | ⚠️ Replace | 🛠️ Update | ➕ Create | **Total** |
 | :--- | :---: | :---: | :---: | :---: | :---: |
 {% for item in type_action_counts %}
-| `{{ item.type }}` | {{ item.count_delete or '' }} | {{ item.count_replace or '' }} | {{ item.count_update or '' }} | {{ item.count_create or '' }} | **{{ item.total }}** |
+| `{{ item.type }}` | {% if item.count_delete %}${\color{red}{{ item.count_delete }}}${% endif %} | {% if item.count_replace %}${\color{orange}{{ item.count_replace }}}${% endif %} | {{ item.count_update or '' }} | {{ item.count_create or '' }} | **{{ item.total }}** |
 {% endfor %}
 </details>
 
