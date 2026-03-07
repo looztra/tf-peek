@@ -9,7 +9,7 @@ import rich
 import typer
 from jinja2 import Environment, FileSystemLoader
 
-from .config import load_config
+from .config import load_config, resolve_tier
 from .models import TerraformPlan
 
 app = typer.Typer()
@@ -45,6 +45,18 @@ def calculate_diff(
     return diff
 
 
+def _build_type_action_row(rtype: str, counts: dict[str, int]) -> dict[str, Any]:
+    """Build a type-action summary row dict for Jinja2 rendering."""
+    return {
+        "type": rtype,
+        "count_delete": counts.get("delete", 0),
+        "count_replace": counts.get("replace", 0),
+        "count_update": counts.get("update", 0),
+        "count_create": counts.get("create", 0),
+        "total": sum(counts.values()),
+    }
+
+
 @app.command()
 def generate(
     json_path: Path = typer.Argument(..., help="JSON plan file"),
@@ -60,55 +72,84 @@ def generate(
         plan = TerraformPlan(**json.load(f))
 
     action_order = ["delete", "replace", "update", "create"]
-    summary: dict[str, int] = {"create": 0, "update": 0, "delete": 0, "replace": 0}
+
+    # Per-action, per-tier counts: tiered_summary[action][tier] = count
+    tiered_summary: dict[str, dict[str, int]] = {
+        action: {"critical": 0, "normal": 0, "silent": 0} for action in action_order
+    }
+
+    # Type-action counts for non-silent resources (main type table)
     type_action_counts: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-    resources_by_action: dict[str, dict[str, list[dict[str, Any]]]] = {
+
+    # Type-action counts for silent resources (🔇 sub-section)
+    silent_type_action_counts: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+
+    # Critical operations that land in the 🚨 section (action in critical_on)
+    critical_resources_by_action: dict[str, dict[str, list[dict[str, Any]]]] = {
+        action: defaultdict(list) for action in action_order
+    }
+
+    # All other visible resources (normal tier + critical ops NOT in critical_on)
+    normal_resources_by_action: dict[str, dict[str, list[dict[str, Any]]]] = {
         action: defaultdict(list) for action in action_order
     }
 
     for rc in plan.resource_changes:
-        if rc.simple_action in ("no-op", "read") or any(rc.type.startswith(p) for p in config.ignore):
+        if rc.simple_action in ("no-op", "read"):
             continue
 
-        summary[rc.simple_action] += 1
-        type_action_counts[rc.type][rc.simple_action] += 1
-        is_summarized = any(rc.type.startswith(p) for p in config.summarize)
+        rule = resolve_tier(rc, config)
+        action = rc.simple_action
+
+        # Always count toward tier summary
+        tiered_summary[action][rule.tier] += 1
+
+        if rule.tier == "silent":
+            silent_type_action_counts[rc.type][action] += 1
+            continue
+
+        # Non-silent: add to type table counts and compute diff
+        type_action_counts[rc.type][action] += 1
+        is_summarized = rule.detail == "summary"
 
         diff = {}
         if not is_summarized:
             diff = calculate_diff(rc.change.before, rc.change.after, rc.change.after_unknown)
 
-        resources_by_action[rc.simple_action][rc.type].append(
-            {
-                "address": rc.address,
-                "short_address": f"{rc.type}.{rc.name}",
-                "action": rc.simple_action,
-                "emoji": get_emoji(rc.simple_action),
-                "is_summarized": is_summarized,
-                "diff": diff,
-            }
-        )
+        resource_entry: dict[str, Any] = {
+            "address": rc.address,
+            "short_address": f"{rc.type}.{rc.name}",
+            "action": action,
+            "emoji": get_emoji(action),
+            "is_summarized": is_summarized,
+            "diff": diff,
+        }
 
-    # Sort types by total resource count (highest first) within each action
-    resources_to_render = {
-        action: dict(sorted(by_type.items(), key=lambda item: len(item[1]), reverse=True))
-        for action, by_type in resources_by_action.items()
-        if by_type
-    }
-    # Sort types by total resource count (highest first) and convert to list of dicts with action counts
-    # Use prefixed keys to avoid conflicts with dict methods
+        if rule.tier == "critical" and action in rule.critical_on:
+            critical_resources_by_action[action][rc.type].append(resource_entry)
+        else:
+            normal_resources_by_action[action][rc.type].append(resource_entry)
+
+    # Sort helpers — highest resource count first within each action group
+    def _sort_by_type(
+        by_action: dict[str, dict[str, list[dict[str, Any]]]],
+    ) -> dict[str, dict[str, list[dict[str, Any]]]]:
+        return {
+            action: dict(sorted(by_type.items(), key=lambda item: len(item[1]), reverse=True))
+            for action, by_type in by_action.items()
+            if by_type
+        }
+
+    critical_to_render = _sort_by_type(critical_resources_by_action)
+    normal_to_render = _sort_by_type(normal_resources_by_action)
+
     sorted_type_action_counts = sorted(
-        [
-            {
-                "type": rtype,
-                "count_delete": dict(counts).get("delete", 0),
-                "count_replace": dict(counts).get("replace", 0),
-                "count_update": dict(counts).get("update", 0),
-                "count_create": dict(counts).get("create", 0),
-                "total": sum(counts.values()),
-            }
-            for rtype, counts in type_action_counts.items()
-        ],
+        [_build_type_action_row(rtype, dict(counts)) for rtype, counts in type_action_counts.items()],
+        key=lambda item: item["total"],
+        reverse=True,
+    )
+    sorted_silent_type_action_counts = sorted(
+        [_build_type_action_row(rtype, dict(counts)) for rtype, counts in silent_type_action_counts.items()],
         key=lambda item: item["total"],
         reverse=True,
     )
@@ -122,10 +163,12 @@ def generate(
     )
     template = env.get_template("report.md.j2")
     rendered_content = template.render(
-        summary=summary,
+        tiered_summary=tiered_summary,
         type_action_counts=sorted_type_action_counts,
-        resources_by_action=resources_to_render,
-        action_order=[a for a in action_order if a in resources_to_render],
+        silent_type_action_counts=sorted_silent_type_action_counts,
+        critical_resources_by_action=critical_to_render,
+        normal_resources_by_action=normal_to_render,
+        action_order=action_order,
         get_emoji=get_emoji,
     )
 

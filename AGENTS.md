@@ -35,7 +35,7 @@ This document provides context and instructions for AI agents working on this re
   - **Linting**: `ruff check` (or `poe ruff:lint`)
   - **Formatting**: `ruff format` (or `poe ruff:fmt:run`)
   - **Markdown Linting**: `pre-commit run --all-files markdownlint-cli2` or `poe lint:all` (if configured)
-  - **Type Checking**: `pyright` & `ty`
+  - **Type Checking**: `ty`
 - **Pre-check**: always run `poe lint:all` before submitting changes.
 
 ### Testing
@@ -58,12 +58,6 @@ This project uses `poethepoet` for task management. Common tasks:
 - `poe ruff:lint:fix`: Auto-fix ruff issues.
 - `poe ruff:fmt:run`: Format code.
 - `poe test`: Run tests.
-
-## Specific Implementation Details
-
-- **Configuration**: Managed in `src/yamkix/config.py`.
-- **CLI**: Implemented using `typer` in `src/yamkix/_cli.py`.
-- **YAML Handling**: Uses `ruamel.yaml` in `src/yamkix/yamkix.py` and `src/yamkix/yaml_writer.py`.
 
 ## General Guidelines for Agents
 
