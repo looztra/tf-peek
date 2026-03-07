@@ -76,3 +76,8 @@ max_line_length = unset
 
 [poe_tasks.toml]
 max_line_length = unset
+
+[*.j2]
+max_line_length = unset
+indent_style = unset
+indent_size = unset

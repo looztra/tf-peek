@@ -18,3 +18,6 @@ MD033: false
 
 # MD037/Spaces inside emphasis markers
 MD037: false
+
+# MD060/atx-header-style - Atx style header
+MD060: false

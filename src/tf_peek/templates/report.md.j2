@@ -1,31 +1,152 @@
-### 🚀 Terraform Plan Summary
+{% if critical_resources_by_action %}
+# 🚨 Critical Changes
 
-| Action | Count |
-| :--- | :---: |
-| 🟢 Create | {{ summary.create }} |
-| 🟡 Update | {{ summary.update }} |
-| 🔴 Delete | {{ summary.delete }} |
-| 🔄 Replace | {{ summary.replace }} |
+{% for action in action_order %}
+{% if action in critical_resources_by_action %}
+### {{ get_emoji(action) }} {{ action | capitalize }}
 
----
-
-### 🔍 Resource Details
+{% for rtype, resources in critical_resources_by_action[action].items() %}
+#### `{{ rtype }}`
 
 {% for res in resources %}
 <details>
-<summary><b>{{ res.emoji }} {{ res.address }}</b> ({{ res.type }})</summary>
+<summary><b>🚨 {{ res.short_address }}</b></summary>
 
-{% if res.is_summarized %}
-> ℹ️ *Détails masqués par configuration (ressource filtrée).*
-{% elif res.diff %}
+*`{{ res.address }}`*
+
+{% if res.diff %}
+{% if action == 'create' %}
+| Property | Value |
+| :--- | :--- |
+{% for attr, val in res.diff.items() %}
+| `{{ attr }}` | `{{ val.after | default('null', true) }}` |
+{% endfor %}
+{% elif action == 'delete' %}
+| Property | Value |
+| :--- | :--- |
+{% for attr, val in res.diff.items() %}
+| `{{ attr }}` | `{{ val.before | default('null', true) }}` |
+{% endfor %}
+{% else %}
 | Property | Before | After |
 | :--- | :--- | :--- |
 {% for attr, val in res.diff.items() %}
 | `{{ attr }}` | `{{ val.before | default('null', true) }}` | `{{ val.after | default('null', true) }}` |
 {% endfor %}
+{% endif %}
 {% else %}
-*Aucun changement d'attribut détecté (changement de tag ou métadonnée).*
+*No attribute changes detected (tag or metadata change).*
 {% endif %}
 
 </details>
+{% endfor %}
+
+{% endfor %}
+
+{% endif %}
+{% endfor %}
+
+---
+
+{% endif %}
+# Terraform Plan Report
+
+## 🚀 Terraform Plan Summary
+
+{% set total_critical = namespace(value=0) %}
+{% set total_normal = namespace(value=0) %}
+{% set total_silent = namespace(value=0) %}
+{% for action in action_order %}
+{% set total_critical.value = total_critical.value + tiered_summary[action]['critical'] %}
+{% set total_normal.value = total_normal.value + tiered_summary[action]['normal'] %}
+{% set total_silent.value = total_silent.value + tiered_summary[action]['silent'] %}
+{% endfor %}
+
+| Action | 🚨 Critical | Normal | 🔇 Silent | Total |
+| :--- | :---: | :---: | :---: | :---: |
+{% for action in action_order %}
+{% set c = tiered_summary[action]['critical'] %}
+{% set n = tiered_summary[action]['normal'] %}
+{% set s = tiered_summary[action]['silent'] %}
+{% set t = c + n + s %}
+{% if t > 0 %}
+| {{ get_emoji(action) }} {{ action | capitalize }} | {% if c %}${\color{red}{{ c }}}${% endif %} | {{ n or '' }} | {% if s %}🔇 {{ s }}{% endif %} | **{{ t }}** |
+{% endif %}
+{% endfor %}
+| **Σ Total** | {% if total_critical.value %}**${\color{red}{{ total_critical.value }}}$**{% endif %} | **{{ total_normal.value }}** | {% if total_silent.value %}**🔇 {{ total_silent.value }}**{% endif %} | **{{ total_critical.value + total_normal.value + total_silent.value }}** |
+
+### Changes by Resource Type
+
+<details>
+<summary><b>View changes by Resource Type</b></summary>
+
+| Resource Type | ➖ Delete | ⚠️ Replace | 🛠️ Update | ➕ Create | **Total** |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+{% for item in type_action_counts %}
+| `{{ item.type }}` | {% if item.count_delete %}${\color{red}{{ item.count_delete }}}${% endif %} | {% if item.count_replace %}${\color{orange}{{ item.count_replace }}}${% endif %} | {{ item.count_update or '' }} | {{ item.count_create or '' }} | **{{ item.total }}** |
+{% endfor %}
+{% if silent_type_action_counts %}
+
+---
+
+🔇 *Silent (counted, not detailed)*
+
+| Resource Type | ➖ Delete | ⚠️ Replace | 🛠️ Update | ➕ Create | **Total** |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+{% for item in silent_type_action_counts %}
+| `{{ item.type }}` 🔇 | {{ item.count_delete or '' }} | {{ item.count_replace or '' }} | {{ item.count_update or '' }} | {{ item.count_create or '' }} | **{{ item.total }}** |
+{% endfor %}
+{% endif %}
+
+</details>
+
+---
+
+## 🔍 Resource Details
+
+{% for action in action_order %}
+{% if action in normal_resources_by_action %}
+### {{ get_emoji(action) }} {{ action | capitalize }}
+
+{% for rtype, resources in normal_resources_by_action[action].items() %}
+#### `{{ rtype }}`
+
+{% for res in resources %}
+<details>
+<summary><b>{{ res.short_address }}</b></summary>
+
+*`{{ res.address }}`*
+
+{% if res.is_summarized %}
+> ℹ️ *Details hidden by configuration (filtered resource).*
+{% elif res.diff %}
+{% if action == 'create' %}
+| Property | Value |
+| :--- | :--- |
+{% for attr, val in res.diff.items() %}
+| `{{ attr }}` | `{{ val.after | default('null', true) }}` |
+{% endfor %}
+{% elif action == 'delete' %}
+| Property | Value |
+| :--- | :--- |
+{% for attr, val in res.diff.items() %}
+| `{{ attr }}` | `{{ val.before | default('null', true) }}` |
+{% endfor %}
+{% else %}
+| Property | Before | After |
+| :--- | :--- | :--- |
+{% for attr, val in res.diff.items() %}
+| `{{ attr }}` | `{{ val.before | default('null', true) }}` | `{{ val.after | default('null', true) }}` |
+{% endfor %}
+{% endif %}
+{% else %}
+*No attribute changes detected (tag or metadata change).*
+{% endif %}
+
+</details>
+{% endfor %}
+
+{% endfor %}
+
+{% endif %}
 {% endfor %}

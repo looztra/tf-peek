@@ -1,18 +1,72 @@
-[filters]
-# Ressources dont on ne veut voir que le titre (pas de diff détaillé)
-summarize = [
-    "google_project_iam_member",
-    "google_project_iam_binding",
-    "google_storage_bucket_iam_member"
-]
+# Silent resources are counted in the summary but never shown in detail.
+# Their types appear in the 🔇 sub-section of the Changes by Resource Type table.
+[[resources]]
+match_type = "null_resource"
+tier = "silent"
 
-# Ressources à ignorer totalement du rapport
-ignore = [
-    "random_id",
-    "null_resource"
-]
+[[resources]]
+match_type = "random_id"
+tier = "silent"
 
-[output]
-# Options de rendu par défaut
-show_unchanged_attributes = false
-emoji_set = "sparkles" # On pourrait imaginer différents sets d'emojis
+[[resources]]
+match_type = "random_password"
+tier = "silent"
+
+[[resources]]
+match_type = "random_string"
+tier = "silent"
+
+[[resources]]
+match_type = "time_rotating"
+tier = "silent"
+
+# Critical resources surface delete+replace operations in the 🚨 section.
+# Override critical_on to also flag updates (e.g. for stateful services).
+[[resources]]
+match_type = "google_storage_bucket"
+tier = "critical"
+
+[[resources]]
+critical_on = [
+    "delete",
+    "replace",
+    "update",
+]
+match_type = "google_sql_database_instance"
+tier = "critical"
+
+[[resources]]
+match_type = "google_compute_network_peering"
+tier = "critical"
+# Example: mark a specific resource address as critical via regex.
+# [[resources]]
+# match_pattern = 'module\.prod_stack\..*\.google_container_cluster\.'
+# tier = "critical"
+# critical_on = ["delete", "replace", "update"]
+
+# Normal resources with detail = "summary" show title only (no diff).
+# Useful for verbose IAM binding types that generate many changes.
+[[resources]]
+detail = "summary"
+match_type = "google_project_iam_member"
+tier = "normal"
+
+[[resources]]
+detail = "summary"
+match_type = "google_project_iam_binding"
+tier = "normal"
+
+[[resources]]
+detail = "summary"
+match_type = "google_storage_bucket_iam_member"
+tier = "normal"
+
+[[resources]]
+detail = "summary"
+match_type = "google_artifact_registry_repository_iam_member"
+tier = "normal"
+
+[[resources]]
+detail = "summary"
+match_type = "google_secret_manager_secret_iam_member"
+tier = "normal"

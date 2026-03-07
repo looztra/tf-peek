@@ -1,8 +1,8 @@
-# Declare a new kubesplit issue
+# Declare a new tf-peek issue
 
 ## Metadata
 
-* kubesplit version:
+* tf-peek version:
 * Python version:
 * Operating System:
 
