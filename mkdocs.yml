@@ -1,0 +1,93 @@
+---
+site_name: tf-peek
+site_url: https://looztra.github.io/tf-peek/
+site_description: Terraform Peek - A tool to peek into your terraform plans
+repo_url: https://github.com/looztra/tf-peek
+edit_uri: edit/main/docs/
+theme:
+  name: material
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - content.action.edit
+    - content.code.copy
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - sane_lists
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          inventories:
+            - url: https://docs.python.org/3/objects.inv
+              domains: [std, py]
+          options:
+            docstring_style: google
+            separate_signature: true
+            show_signature_annotations: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            extensions:
+              - griffe_pydantic:
+                schema: true
+              - griffe_typingdoc
+              - griffe_warnings_deprecated
+  - git-revision-date-localized:
+      enable_creation_date: false
+      type: iso_datetime
+nav:
+  - Home: index.md
+  - Architecture:
+      - Overview: architecture/01-architecture-overview.md
+      - External Services: architecture/02-external-services.md
+      - Endpoints: architecture/03-endpoints-and-dependencies.md
+      - Data Models: architecture/04-data-models.md
+      - README: architecture/README.md
+  - Explanation:
+      - Resource Tiers: explanation/resource-tiers.md
+  - How-To:
+      - Flag Critical Resources: how-to/flag-critical-resources.md
+      - Generate Report: how-to/generate-a-report.md
+      - Install: how-to/install.md
+      - Silence Noisy Resources: how-to/silence-noisy-resources.md
+  - Reference:
+      - CLI: reference/cli.md
+      - Configuration: reference/configuration.md
+  - Tutorial:
+      - First Report: tutorial/first-report.md
+watch:
+  - src

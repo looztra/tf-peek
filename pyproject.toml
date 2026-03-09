@@ -41,6 +41,7 @@ tf-peek = "tf_peek.main:app"
 
 [dependency-groups]
 dev = [
+    { include-group = "docs" },
     "tox>=4.2",
     "faker>=36.0",
     "poethepoet>=0.29.0",
@@ -54,6 +55,15 @@ dev = [
     "tox-uv>=1.23.2",
     "taplo>=0.9.3",
     "ty>=0.0.19",
+]
+docs = [
+    "mkdocs>=1.6.1, <2.0",
+    "mkdocstrings[python]>=0.30.0",
+    "mkdocs-material>=9.6.16",
+    "griffe-pydantic>=1.1.6",
+    "griffe-warnings-deprecated>=1.1.0",
+    "griffe-typingdoc>=0.2.8",
+    "mkdocs-git-revision-date-localized-plugin>=1.4.7",
 ]
 
 [tool.hatch.version]
