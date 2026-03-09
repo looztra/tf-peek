@@ -16,7 +16,7 @@ Start here if you are new to `tf-peek`.
 
 ---
 
-## [How-to guides](how-to/) — Accomplish a specific task
+## How-to guides — Accomplish a specific task
 
 Step-by-step directions for common tasks. These guides assume you are already familiar with the basics.
 
@@ -27,7 +27,7 @@ Step-by-step directions for common tasks. These guides assume you are already fa
 
 ---
 
-## [Reference](reference/) — Technical facts and specifications
+## Reference — Technical facts and specifications
 
 Complete, accurate descriptions of the CLI and configuration format. Use these while working.
 
@@ -36,7 +36,7 @@ Complete, accurate descriptions of the CLI and configuration format. Use these w
 
 ---
 
-## [Explanation](explanation/) — Background and concepts
+## Explanation — Background and concepts
 
 Read these to understand *why* things work the way they do.
 
