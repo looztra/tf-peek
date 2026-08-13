@@ -12,6 +12,7 @@ select = [
 ignore = [
     "B008",   # B008: Do not perform function call {name} in argument defaults
     "COM812", # COM812: Trailing comma missing
+    "CPY",    # CPY: This project does not use per-file copyright notices.
     "FBT",    # All flake8-boolean-trap rules,
     "ISC001", # The following rule may cause conflicts when used with the formatter
 ]
