@@ -18,7 +18,7 @@ def _make_plan(resource_changes: list[dict[str, Any]]) -> dict[str, Any]:
     return {"resource_changes": resource_changes}
 
 
-def _rc_entry(  # noqa: PLR0913
+def _rc_entry(  # noqa: PLR0913, PLR0917
     rtype: str,
     name: str,
     actions: list[str],
