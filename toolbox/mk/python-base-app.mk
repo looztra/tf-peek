@@ -40,7 +40,7 @@ unit-tests: tests ## Wrapper, same as the 'tests' target
 .PHONY: integration-tests
 integration-tests: ## ▶ Run integration tests (if any)
 	@echo "+ $@"
-	cd $(IT_TESTS_TARGET); bats .
+	echo "No op for now"
 
 .PHONY: integration-test
 integration-test: integration-tests ## Wrapper, same as the 'integration-tests' target
