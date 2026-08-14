@@ -11,5 +11,5 @@ globs:
   - '!.agent/**/*.md'
   - '!.github/skills/**/*.md'
   - '!.github/prompts/**/*.md'
-  - '!.gemini/skills/**/*.md'
+  - '!.agents/skills/**/*.md'
   - '!.claude/**/*.md'
