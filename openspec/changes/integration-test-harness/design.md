@@ -154,11 +154,15 @@ mirrors the value shape so a list-of-blocks unknown is `[{"ip": true}]`.
 - **A committed golden contains `hunter2` labelled "expected"** → it is a fabricated value in a test
   fixture, and it is transient (0.1 removes it). Accepted, but the fixture must never use anything
   resembling a real credential.
-- **tox may not install the `tf-peek` console script** (`skipsdist = True`) → determinism uses
-  `-m tf_peek.main`, which needs only importability; the console script is only used by the deferred
-  doc tests, which will skip-guard on `shutil.which("tf-peek")`.
-- **tox now runs the integration suite on py311–py313** → first real multi-interpreter coverage of
-  the CLI, so this is mostly upside; budget ~3.5 s per environment.
+- **tox tests the source tree, not the installed distribution** → verified: `tox -e py313` installs
+  the `tf-peek` console script into `.tox/py313/bin/`, but `pytest.ini`'s `pythonpath = src` shadows
+  the installed package, so `import tf_peek` resolves to `src/`. Determinism uses `-m tf_peek.main`,
+  which needs only importability, so this change is unaffected. It does mean the packaged entry
+  point is never exercised by tox — relevant to the deferred doc-invocation tests in 0.6. Accepted
+  deliberately; see the `align-python-version-support` change.
+- **tox now runs the integration suite on py311–py314** → first real multi-interpreter coverage of
+  the CLI, so this is mostly upside; budget ~3.5 s per environment. Note `tox` is not invoked by any
+  CI workflow, so this coverage is local-only until that changes.
 - **The toolbox fork drifts further from `looztra/toolbox`** → the indirection is written in the
   upstream's own idiom so it can be pushed up later; not required by this change.
 - **`--snapshot-update` makes it trivial to bless a regression** → the ledger is the counterweight;
@@ -185,7 +189,8 @@ Rollback is `git revert`; nothing outside the repo is affected, and no runtime b
   the fork works standalone either way.
 - Should `tests/*.py` eventually move to `tests/unit/` for symmetry? Deliberately deferred; purely
   cosmetic and independently revertible.
-- `tox.ini` lists `py310` while `pyproject.toml` requires `>=3.11`, and `setenv PYTHONPATH =
-  {toxinidir}` is likely meant to be `{toxinidir}/src` (harmless today because `pytest.ini` sets
-  `pythonpath = src`). Both pre-existing and out of scope; noted so they do not surprise anyone when
-  tox starts doing real work.
+- ~~`tox.ini` lists `py310` while `pyproject.toml` requires `>=3.11`, and `setenv PYTHONPATH`
+  looks wrong.~~ **Resolved** — both are handled by the `align-python-version-support` change.
+  `tox -e py310` fails hard (exit 2), so `make test-python-versions` is broken today; and the
+  `setenv` is inert rather than wrong, since `pytest.ini` already provides `pythonpath = src`.
+  Both changes edit `tox.ini`; if they land close together, expect a trivial merge.

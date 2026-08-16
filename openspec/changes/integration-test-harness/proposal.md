@@ -75,10 +75,10 @@ configured to write readable `.md` files rather than its default amber format �
 toward the Codecov number. `make integration-tests` runs them a second time (~3.5s) as a named gate
 with clear failure attribution. This double-run is accepted deliberately.
 
-**tox**: `commands = pytest` will now collect the integration suite across py311–py313, which is the
-first coverage the CLI has had on non-default interpreters. Tests that depend on the `tf-peek`
-console script must skip-guard on its availability, since `skipsdist = True` makes installation of
-the entry point uncertain under tox.
+**tox**: `commands = pytest` will now collect the integration suite across every environment in
+`envlist`, the first coverage the CLI has had on non-default interpreters. Note that no CI workflow
+invokes `tox`, so this remains local-only. `tox.ini` is also edited by the
+`align-python-version-support` change; expect a trivial merge if they land close together.
 
 **Downstream**: `toolbox/mk/*` originates from `looztra/toolbox` but is a fork, not a live mirror —
 the files are git-tracked here and were last edited in place by `b9f555a`. The
