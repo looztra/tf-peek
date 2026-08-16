@@ -32,5 +32,5 @@ Recorded so they are not picked up by accident — see `proposal.md — Delibera
       matrix cost, and this change leaves the multi-version claim untested by CI
 - [x] 3.2 Confirm `pytest.ini` was not modified: tox continues to test the source tree rather than
       the installed distribution
-- [x] 3.3 Confirm `allowlist_externals = bats` was left in `tox.ini`: it is removed by the
-      `integration-test-harness` change (task 4.1), and editing it here would create a conflict
+- [x] 3.3 Confirm `allowlist_externals = python` was left unchanged in `tox.ini`: it was set by the
+      `integration-test-harness` change, and editing it here would create a conflict
