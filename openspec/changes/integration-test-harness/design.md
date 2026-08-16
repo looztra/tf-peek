@@ -46,11 +46,15 @@ See `proposal.md — Why`. The constraints that shape the approach:
 
 ```make
 IT_TESTS_TARGETS ?= integration-tests-noop
-integration-tests:
-	@$(MAKE) --no-print-directory $(IT_TESTS_TARGETS)
 ```
 
-with `IT_TESTS_TARGETS ?= poe-integration-tests` set in `Makefile` next to `APP_NAME`.
+The `integration-tests` target's recipe becomes a single tab-indented
+`@$(MAKE) --no-print-directory $(IT_TESTS_TARGETS)`, and `Makefile` sets
+`IT_TESTS_TARGETS ?= poe-integration-tests` next to `APP_NAME`.
+
+(The recipe line is described rather than shown because `editorconfig-checker` enforces
+`indent_style = space` on markdown — `[*.{md,rst}]` in `.editorconfig` unsets `indent_size` but not
+`indent_style` — and a make recipe requires a literal tab.)
 
 This reframes `b9f555a` rather than reverting it: wanting a no-op default was right, hardcoding it
 was not. Projects with no integration tests keep passing; this one opts in. The shape mirrors
