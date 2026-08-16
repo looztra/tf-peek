@@ -5,16 +5,21 @@
       `requires-python = ">=3.11"`, adds the interpreter the project is actually developed on
 - [ ] 1.2 `pyproject.toml`: replace the `Programming Language :: Python :: 3.10` classifier with
       `3.14`, leaving 3.11–3.13 in place, so the PyPI page matches `requires-python`
-- [ ] 1.3 `tox.ini`: delete the `setenv` block containing `PYTHONPATH = {toxinidir}`. It is inert —
-      `pytest.ini`'s `pythonpath = src` is what makes `tf_peek` importable, and `{toxinidir}` only
-      adds the repo root
+- [ ] 1.3 `tox.ini`: the `setenv` block no longer contains `PYTHONPATH = {toxinidir}` — the
+      `integration-test-harness` change already replaced it with `PYTHONHASHSEED = 0` (pins hash
+      randomisation so the golden test is stable across process restarts; see that change's
+      `design.md` for why). There is nothing left to remove here: `PYTHONPATH = {toxinidir}` was
+      inert (`pytest.ini`'s `pythonpath = src` is what makes `tf_peek` importable), but
+      `PYTHONHASHSEED = 0` is load-bearing and **must not** be deleted. Confirm the block still
+      reads `setenv = \n    PYTHONHASHSEED = 0` and move on
 
 ## 2. Verify
 
 - [ ] 2.1 Run `make test-python-versions` and confirm all four environments pass — it currently
       aborts on the first one
-- [ ] 2.2 Confirm imports still resolve after removing `setenv`: `uv run tox -e py311` must still
-      collect and pass the 35 unit tests
+- [ ] 2.2 Confirm imports still resolve now that `setenv` no longer sets `PYTHONPATH`: `uv run tox
+      -e py311` must still collect and pass the unit tests (35, plus whatever
+      `integration-test-harness` has added by the time this lands)
 - [ ] 2.3 Run `make dist` and inspect the built wheel's metadata for the corrected
       `Programming Language` classifiers and unchanged `Requires-Python: >=3.11`
 - [ ] 2.4 Run `make lint` (taplo formats `pyproject.toml`; the classifier edit must survive it)

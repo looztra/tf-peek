@@ -1,0 +1,28 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.5",
+  "resource_changes": [
+    {
+      "address": "google_sql_database_instance.prod",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "google_sql_database_instance",
+      "name": "prod",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "settings": { "tier": "db-f1-micro", "note": null }
+        },
+        "after": {
+          "settings": { "tier": "db-n1-standard-1", "note": null }
+        },
+        "after_unknown": {
+          "settings": { "tier": false, "ip_address": true }
+        },
+        "before_sensitive": false,
+        "after_sensitive": false
+      }
+    }
+  ]
+}
