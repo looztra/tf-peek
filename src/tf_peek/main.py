@@ -162,14 +162,17 @@ def generate(
         lstrip_blocks=True,
     )
     template = env.get_template("report.md.j2")
-    rendered_content = template.render(
-        tiered_summary=tiered_summary,
-        type_action_counts=sorted_type_action_counts,
-        silent_type_action_counts=sorted_silent_type_action_counts,
-        critical_resources_by_action=critical_to_render,
-        normal_resources_by_action=normal_to_render,
-        action_order=action_order,
-        get_emoji=get_emoji,
+    rendered_content = (
+        template.render(
+            tiered_summary=tiered_summary,
+            type_action_counts=sorted_type_action_counts,
+            silent_type_action_counts=sorted_silent_type_action_counts,
+            critical_resources_by_action=critical_to_render,
+            normal_resources_by_action=normal_to_render,
+            action_order=action_order,
+            get_emoji=get_emoji,
+        ).rstrip()
+        + "\n"
     )
 
     if output_file:
