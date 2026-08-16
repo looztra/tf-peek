@@ -26,6 +26,12 @@ theme:
     - content.action.edit
     - content.code.copy
 
+# Internal analyses kept in the repo but not published to the site.
+# Excluded from the build entirely, so they are not reachable by direct URL
+# and not added to the search index.
+exclude_docs: |
+  studies/
+
 validation:
   omitted_files: warn
   absolute_links: warn
