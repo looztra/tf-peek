@@ -150,6 +150,34 @@ non-obvious — notably that `before_sensitive`/`after_sensitive` may be `bool`,
 mixes string keys and integer indices (`[["settings", 0, "tier"]]`), and that `after_unknown`
 mirrors the value shape so a list-of-blocks unknown is `[{"ip": true}]`.
 
+### 9. Pin `PYTHONHASHSEED` project-wide so the golden test is stable despite D2
+
+The golden test (Decision 5) uses `CliRunner` in-process and asserts against a committed snapshot.
+`calculate_diff`'s `set()` iteration (D2) means row order in the rendered report depends on
+Python's per-process hash-randomisation seed — verified empirically: three consecutive
+`pytest -m integration` invocations (three fresh interpreters) produced 2 failures out of 3 against
+the same committed golden, with no code change, purely from row reordering.
+
+This directly contradicts the "CI is green on day 1" goal from Decision 5. D2 itself stays out of
+scope — the fix is not to make `calculate_diff` deterministic, but to stop the *golden test* from
+being coupled to an already-ledgered defect it isn't trying to catch (that's `test_defects.py`'s
+job, which explicitly varies the seed to prove D2 is real).
+
+`PYTHONHASHSEED = "0"` is set in a project-wide `[env]` table in `poe_tasks.toml` (applies to every
+poe task) and mirrored in `tox.ini`'s `setenv`. A first attempt pinned it only on the
+`pytest:integration` poe task; that missed `pytest:cov` (the task `make tests` actually runs, and
+the one that owns the Codecov number per Decision 3), so the golden still flaked under `make tests`
+specifically. The project-wide `[env]` closes that gap for every current and future pytest entry
+point that goes through poe.
+
+Consequence for `tox.ini`: its `setenv` block, previously `PYTHONPATH = {toxinidir}` (inert, see
+the `align-python-version-support` change), now holds `PYTHONHASHSEED = 0` (load-bearing). That
+change's task to "delete the `setenv` block" no longer applies as written — see its `proposal.md`
+and `tasks.md`, updated accordingly.
+
+*Alternative:* vary nothing and accept the flakiness until D2 is fixed by a later P0 change —
+rejected because it defeats this change's own stated goal for the harness it just built.
+
 ## Risks / Trade-offs
 
 - **Fixtures encode the same mental model as the code they test** → validate the three shape rules
@@ -167,6 +195,11 @@ mirrors the value shape so a list-of-blocks unknown is `[{"ip": true}]`.
 - **tox now runs the integration suite on py311–py314** → first real multi-interpreter coverage of
   the CLI, so this is mostly upside; budget ~3.5 s per environment. Note `tox` is not invoked by any
   CI workflow, so this coverage is local-only until that changes.
+- **Pinning `PYTHONHASHSEED` (Decision 9) makes the golden test blind to D2 in normal runs** → by
+  design: the golden's job is to review rendering changes, not re-prove a defect the ledger already
+  names. `test_defects.py::test_determinism_across_hash_seeds` explicitly varies the seed, so D2
+  stays visible where it belongs. Do not remove the pin to "test more realistically" — that just
+  reintroduces the flakiness described in Decision 9 without adding coverage anywhere else.
 - **The toolbox fork drifts further from `looztra/toolbox`** → the indirection is written in the
   upstream's own idiom so it can be pushed up later; not required by this change.
 - **`--snapshot-update` makes it trivial to bless a regression** → the ledger is the counterweight;
@@ -194,7 +227,11 @@ Rollback is `git revert`; nothing outside the repo is affected, and no runtime b
 - Should `tests/*.py` eventually move to `tests/unit/` for symmetry? Deliberately deferred; purely
   cosmetic and independently revertible.
 - ~~`tox.ini` lists `py310` while `pyproject.toml` requires `>=3.11`, and `setenv PYTHONPATH`
-  looks wrong.~~ **Resolved** — both are handled by the `align-python-version-support` change.
-  `tox -e py310` fails hard (exit 2), so `make test-python-versions` is broken today; and the
-  `setenv` is inert rather than wrong, since `pytest.ini` already provides `pythonpath = src`.
-  Both changes edit `tox.ini`; if they land close together, expect a trivial merge.
+  looks wrong.~~ **Resolved** — the `py310`/`py311` mismatch is handled by the
+  `align-python-version-support` change (`tox -e py310` fails hard with exit 2, so
+  `make test-python-versions` is broken today). The `setenv PYTHONPATH` question resolved
+  differently than expected: `PYTHONPATH = {toxinidir}` was indeed inert (`pytest.ini` already
+  provides `pythonpath = src`), but rather than deleting the `setenv` block outright, this change
+  repurposed it for `PYTHONHASHSEED = 0` — see Decision 9. `align-python-version-support`'s
+  artifacts have been updated to reflect that the block now holds load-bearing content, not a
+  fossil to remove.

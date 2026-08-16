@@ -30,9 +30,13 @@ with 3.14 added because it is what the project is developed and shipped against.
 
 - `tox.ini`: `envlist = py311,py312,py313,py314` — drops the failing `py310`, adds `py314`.
 - `pyproject.toml`: classifiers become 3.11, 3.12, 3.13, 3.14.
-- `tox.ini`: remove the `setenv PYTHONPATH = {toxinidir}` block. It is inert — `pytest.ini` already
-  sets `pythonpath = src`, which is what makes `tf_peek` importable; `{toxinidir}` only adds the
-  repo root, which nothing needs.
+- `tox.ini`: the `setenv` block no longer needs a `PYTHONPATH` entry — `pytest.ini` already sets
+  `pythonpath = src`, which is what makes `tf_peek` importable; `{toxinidir}` only added the repo
+  root, which nothing needs. **This is now moot in practice**: the `integration-test-harness`
+  change landed first and replaced the block's content with `PYTHONHASHSEED = 0` (pins hash
+  randomisation so its golden test is stable across process restarts). There is no `PYTHONPATH`
+  line left to remove, and the `PYTHONHASHSEED` line must **not** be removed — it is load-bearing
+  for that change's test suite, not a leftover.
 
 All four target interpreters were verified to pass the existing 35 tests before this change was
 written:
@@ -80,6 +84,7 @@ so no working install breaks. Adding 3.14 makes the page reflect reality.
 **Contributors**: `make test-python-versions` starts working. It currently fails on the first
 environment, which likely means it is not being run at all.
 
-**Interaction with `integration-test-harness`**: that change makes `tox` collect an integration
-suite for the first time, adding ~3.5 s per environment across four interpreters instead of three.
-Both changes edit `tox.ini`; if they land close together, expect a trivial merge.
+**Interaction with `integration-test-harness`**: that change landed first. It makes `tox` collect
+an integration suite, adding ~3.5 s per environment across four interpreters instead of three, and
+it already rewrote `tox.ini`'s `setenv` block (see "What Changes" above) — there is no longer a
+`PYTHONPATH` line to remove, and the `PYTHONHASHSEED = 0` line it added must be preserved.
