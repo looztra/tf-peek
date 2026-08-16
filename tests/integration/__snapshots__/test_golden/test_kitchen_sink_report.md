@@ -57,5 +57,3 @@
 and a newline` |
 
 </details>
-
-

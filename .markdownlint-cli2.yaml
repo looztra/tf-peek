@@ -13,3 +13,4 @@ globs:
   - '!.github/prompts/**/*.md'
   - '!.agents/skills/**/*.md'
   - '!.claude/**/*.md'
+  - '!tests/integration/__snapshots__/**/*.md'
