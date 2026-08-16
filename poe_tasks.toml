@@ -1,3 +1,11 @@
+[env]
+# Pin hash randomisation so goldens and defect-ledger assertions are stable
+# across process restarts, regardless of which task invokes pytest. D2 (the
+# underlying non-determinism) is real and stays real — see the dedicated
+# `test_determinism_across_hash_seeds` ledger entry, which explicitly varies
+# the seed to prove it.
+PYTHONHASHSEED = "0"
+
 [tasks]
 "lint:all" = [
     "ruff:fmt:check",
@@ -14,6 +22,7 @@ pyright = [
 ]
 "pyright:run" = "pyright"
 "pytest:cov" = "pytest --cov src --cov-report=xml --cov-report=term-missing --cov-branch --junitxml=generated/junit.xml -o junit_family=legacy"
+"pytest:integration" = "pytest -m integration"
 "ruff:fmt:check" = "ruff format --check"
 "ruff:fmt:run" = "ruff format"
 "ruff:lint" = "ruff check"

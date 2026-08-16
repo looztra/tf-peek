@@ -1260,6 +1260,18 @@ wheels = [
 ]
 
 [[package]]
+name = "syrupy"
+version = "5.5.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e7/39/17dde9f0c76cc5abcdeef1b2243791bb850d498f784147b8e460dd23abe8/syrupy-5.5.3.tar.gz", hash = "sha256:fa21e4ae77c89ec5abfca513338d8a7eb916da6618ca0f8db301476e0768e57a", size = 91614, upload-time = "2026-07-11T15:54:31.46Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ae/f9/617a194c1a4203279998e1859426cf2635042533a99a93d63d3ee1fb967e/syrupy-5.5.3-py3-none-any.whl", hash = "sha256:0b260a0c9dad55e1fb83818973dc36fbc1aea3fd5381592f442a986686c4171a", size = 54959, upload-time = "2026-07-11T15:54:29.836Z" },
+]
+
+[[package]]
 name = "taplo"
 version = "0.9.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1301,6 +1313,7 @@ dev = [
     { name = "pytest-mock" },
     { name = "pytest-unordered" },
     { name = "ruff" },
+    { name = "syrupy" },
     { name = "taplo" },
     { name = "tox" },
     { name = "tox-uv" },
@@ -1342,6 +1355,7 @@ dev = [
     { name = "pytest-mock", specifier = ">=3.14.0" },
     { name = "pytest-unordered", specifier = ">=0.6.1" },
     { name = "ruff", specifier = ">=0.9.6" },
+    { name = "syrupy", specifier = ">=4.9.1" },
     { name = "taplo", specifier = ">=0.9.3" },
     { name = "tox", specifier = ">=4.2" },
     { name = "tox-uv", specifier = ">=1.23.2" },

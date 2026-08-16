@@ -1,0 +1,88 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.5",
+  "resource_changes": [
+    {
+      "address": "google_sql_database_instance.prod",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "google_sql_database_instance",
+      "name": "prod",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": ["delete", "create"],
+        "before": {
+          "name": "prod-db",
+          "password": "hunter2",
+          "settings": [
+            {
+              "tier": "db-f1-micro",
+              "flags": [{ "name": "max_connections", "value": "100" }]
+            }
+          ]
+        },
+        "after": {
+          "name": "prod-db",
+          "password": "s3cr3t!",
+          "settings": [
+            {
+              "tier": "db-n1-standard-1",
+              "flags": [{ "name": "max_connections", "value": "100" }]
+            }
+          ]
+        },
+        "after_unknown": {
+          "name": false,
+          "password": false,
+          "settings": [{ "tier": false, "flags": true, "ip_address": true }]
+        },
+        "before_sensitive": {
+          "name": false,
+          "password": true,
+          "settings": [{ "tier": false, "flags": [{ "name": false, "value": false }] }]
+        },
+        "after_sensitive": {
+          "name": false,
+          "password": true,
+          "settings": [{ "tier": false, "flags": [{ "name": false, "value": false }] }]
+        },
+        "replace_paths": [["settings", 0, "tier"]]
+      }
+    },
+    {
+      "address": "module.storage.google_storage_bucket.docs",
+      "module_address": "module.storage",
+      "mode": "managed",
+      "type": "google_storage_bucket",
+      "name": "docs",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "name": "docs-bucket",
+          "desc": "old description"
+        },
+        "after": {
+          "name": "docs-bucket",
+          "desc": "has | pipe\nand a newline"
+        },
+        "after_unknown": {
+          "name": false,
+          "desc": false
+        },
+        "before_sensitive": false,
+        "after_sensitive": false
+      }
+    }
+  ],
+  "output_changes": {
+    "bucket_url": {
+      "actions": ["update"],
+      "before": "https://storage.googleapis.com/docs-bucket-old",
+      "after": "https://storage.googleapis.com/docs-bucket",
+      "after_unknown": false,
+      "before_sensitive": false,
+      "after_sensitive": false
+    }
+  }
+}

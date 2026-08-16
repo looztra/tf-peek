@@ -1,0 +1,22 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.5",
+  "resource_changes": [
+    {
+      "address": "random_password.db",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "random_password",
+      "name": "db",
+      "provider_name": "registry.terraform.io/hashicorp/random",
+      "change": {
+        "actions": ["update"],
+        "before": { "result": "hunter2" },
+        "after": { "result": "s3cr3t!" },
+        "after_unknown": { "result": false },
+        "before_sensitive": { "result": true },
+        "after_sensitive": { "result": true }
+      }
+    }
+  ]
+}

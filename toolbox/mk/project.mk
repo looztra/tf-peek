@@ -14,6 +14,6 @@ serve-docs: ## ▶ Serve the documentation
 	@uv run mkdocs serve
 
 .PHONY: poe-integration-tests
-poe-integration-tests: ## Run integration tests using poe
+poe-integration-tests: check-uv ## Run integration tests using poe
 	@echo "+ $@"
-	uv run poe pytest:integration
+	@uv run $(UV_RUN_OPTIONS) $(UV_TASK_RUNNER) pytest:integration

@@ -1,5 +1,6 @@
-APP_NAME      ?= tf-peek
-LOCAL_MK_ROOT ?= toolbox/mk
+APP_NAME         ?= tf-peek
+IT_TESTS_TARGETS ?= poe-integration-tests
+LOCAL_MK_ROOT    ?= toolbox/mk
 
 
 include $(LOCAL_MK_ROOT)/common.mk

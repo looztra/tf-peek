@@ -1,6 +1,7 @@
 # APP_MODULE is APP_NAME unless set elsewhere
 APP_MODULE          ?= $(shell echo $(APP_NAME)| tr - _ )
 IT_TESTS_TARGET     ?= .
+IT_TESTS_TARGETS    ?= integration-tests-noop
 
 .PHONY: clean
 clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts
@@ -38,9 +39,14 @@ test: tests ## Wrapper, same as the 'tests' target
 unit-tests: tests ## Wrapper, same as the 'tests' target
 
 .PHONY: integration-tests
-integration-tests: ## ▶ Run integration tests (if any)
+integration-tests: ## ▶ Run integration tests calling target $(IT_TESTS_TARGETS)
 	@echo "+ $@"
-	echo "No op for now"
+	@$(MAKE) --no-print-directory $(IT_TESTS_TARGETS)
+
+.PHONY: integration-tests-noop
+integration-tests-noop: ## Default no-op integration tests target
+	@echo "+ $@"
+	@echo "No op for now"
 
 .PHONY: integration-test
 integration-test: integration-tests ## Wrapper, same as the 'integration-tests' target
