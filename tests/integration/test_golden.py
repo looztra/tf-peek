@@ -2,7 +2,7 @@
 
 This is the primary review artifact for the P0 defect fixes (0.1-0.5): each fix
 produces a diff against `__snapshots__/test_golden/test_kitchen_sink_report.md`.
-Regenerate with `uv run pytest -m integration --snapshot-update`.
+Regenerate with `uv run poe pytest:integration --snapshot-update`.
 """
 
 from pathlib import Path
