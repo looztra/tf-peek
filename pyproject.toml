@@ -13,10 +13,10 @@ classifiers = [
     "Topic :: Utilities",
     # Specify the Python versions you support here.
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
     "jinja2>=3.1.6",
