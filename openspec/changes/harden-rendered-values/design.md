@@ -37,9 +37,8 @@ This leaves the top-level diff model unchanged: one changed top-level Terraform 
 Keep diff calculation responsible for semantic comparison and sensitivity masking. After those steps, pass each cell value through one canonical formatter before template rendering.
 
 - Preserve `(sensitive value)` and `(known after apply) ⏳` as human-readable display sentinels.
-- Render dicts and lists as compact JSON, using JSON literals such as `null`, `true`, and `false` rather than Python `repr`.
-- Normalize scalar line endings into visible escaped line-break notation rather than physical newlines.
-- Escape Markdown table delimiters after serialization so a `|` remains data, not a cell boundary.
+- Render dicts and lists as compact JSON, using JSON literals such as `null`, `true`, and `false` rather than Python `repr`. A literal `|` inside that JSON text is escaped with the JSON escape sequence `\u007c`, not the GFM backslash form, so the cell stays inside one table row while the text remains valid JSON that round-trips through `json.loads`. Physical line breaks are already valid JSON string escapes, so structured values get no separate newline normalization.
+- For scalar strings, normalize line endings into visible escaped line-break notation rather than physical newlines, then escape a literal `|` with the GFM table-cell backslash form (`\|`) — scalars are not JSON documents, so GFM escaping is what keeps them inside one physical cell.
 
 Formatting after masking is non-negotiable: serializing first would create an alternate path that could expose sensitive values. A single formatter prevents the critical and normal report sections from drifting because they share table structure but are rendered by separate template blocks.
 

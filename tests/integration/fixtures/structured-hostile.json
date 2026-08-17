@@ -1,0 +1,22 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.5",
+  "resource_changes": [
+    {
+      "address": "google_storage_bucket.docs",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "google_storage_bucket",
+      "name": "docs",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": ["update"],
+        "before": { "metadata": { "message": "old value" } },
+        "after": { "metadata": { "message": "new | value\nline2" } },
+        "after_unknown": { "metadata": { "message": false } },
+        "before_sensitive": false,
+        "after_sensitive": false
+      }
+    }
+  ]
+}

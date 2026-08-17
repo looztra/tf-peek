@@ -43,9 +43,50 @@ def _marker_for_key(
 
 _KNOWN_AFTER_APPLY = "(known after apply) ⏳"
 _SENSITIVE_VALUE = "(sensitive value)"
-_DISPLAY_SENTINELS = {_KNOWN_AFTER_APPLY, _SENSITIVE_VALUE}
 
 _JSONValue = str | int | float | bool | dict[str, "_JSONValue"] | list["_JSONValue"] | None
+
+
+def _materialize_unknown_marker(
+    marker: bool | dict[str, Any] | list[Any] | None,
+) -> tuple[bool, _JSONValue]:
+    """Materialize a marker-only `after_unknown` subtree with no concrete counterpart.
+
+    Used when an `after_unknown` marker has no matching concrete `after` value —
+    either the top-level attribute is absent from `after`, or a dict/list marker
+    extends past the concrete container's keys/length. Returns a `(present, value)`
+    pair: `present` is `True` only when the marker contains at least one truthy
+    leaf, so callers can omit branches that carry no meaningful unknown value.
+
+    A `True` leaf materializes as the known-after-apply sentinel. `False`, `None`,
+    and any other non-container scalar are never meaningful, matching the literal-
+    `True` semantics `_resolve_after_unknown` already uses for leaf markers. A dict
+    marker keeps only truthy descendants, visited in sorted key order for
+    deterministic output. A list marker keeps the prefix through the last truthy
+    index, using `None` for intervening non-meaningful positions so a later
+    meaningful index does not shift; non-meaningful trailing entries are dropped.
+    """
+    if marker is True:
+        return True, _KNOWN_AFTER_APPLY
+    if isinstance(marker, dict):
+        materialized_dict: dict[str, _JSONValue] = {}
+        for key in sorted(marker):
+            present, value = _materialize_unknown_marker(marker[key])
+            if present:
+                materialized_dict[key] = value
+        return (True, materialized_dict) if materialized_dict else (False, None)
+    if isinstance(marker, list):
+        materialized_list: list[_JSONValue] = []
+        last_present_index = -1
+        for item in marker:
+            present, value = _materialize_unknown_marker(item)
+            materialized_list.append(value if present else None)
+            if present:
+                last_present_index = len(materialized_list) - 1
+        if last_present_index < 0:
+            return False, None
+        return True, materialized_list[: last_present_index + 1]
+    return False, None
 
 
 def _resolve_after_unknown(value: _JSONValue, marker: bool | dict[str, Any] | list[Any] | None) -> _JSONValue:
@@ -53,55 +94,66 @@ def _resolve_after_unknown(value: _JSONValue, marker: bool | dict[str, Any] | li
 
     A truthy marker replaces the value at that position with the known-after-apply
     display sentinel. Object markers recurse by key, including keys that exist only
-    in the marker (so unknown-only properties are not omitted); marker-only keys are
-    visited in sorted order to keep output deterministic. List markers recurse by
-    index. Any other marker shape (`False`, `None`, or a marker that does not match
-    the value's shape) leaves the value unchanged.
+    in the marker via `_materialize_unknown_marker` (so unknown-only properties are
+    not omitted, but non-meaningful marker-only branches — `False`, `None`, or a
+    branch with no truthy descendant — are omitted rather than surfacing as JSON
+    `null`); marker-only keys are visited in sorted order to keep output
+    deterministic. List markers recurse by index for existing elements, then
+    extend with a marker-only tail materialized by `_materialize_unknown_marker`,
+    which preserves positional gaps (as JSON `null`) up to the last meaningful
+    trailing marker and drops non-meaningful markers after it. Any other marker
+    shape (`False`, `None`, or a marker that does not match the value's shape)
+    leaves the value unchanged.
     """
     if marker is True:
         return _KNOWN_AFTER_APPLY
     if isinstance(marker, dict):
         if not isinstance(value, dict):
             return value
-        base = value
-        result = {key: _resolve_after_unknown(val, marker.get(key)) for key, val in base.items()}
+        result = {key: _resolve_after_unknown(val, marker.get(key)) for key, val in value.items()}
         for key in sorted(marker):
             if key not in result:
-                result[key] = _resolve_after_unknown(None, marker[key])
+                present, materialized = _materialize_unknown_marker(marker[key])
+                if present:
+                    result[key] = materialized
         return result
     if isinstance(marker, list):
         if not isinstance(value, list):
             return value
-        base = value
-        length = max(len(base), len(marker))
-        return [
-            _resolve_after_unknown(
-                base[i] if i < len(base) else None,
-                marker[i] if i < len(marker) else None,
-            )
-            for i in range(length)
+        result_list = [
+            _resolve_after_unknown(item, marker[i] if i < len(marker) else None) for i, item in enumerate(value)
         ]
+        present, tail = _materialize_unknown_marker(marker[len(value) :])
+        if present:
+            assert isinstance(tail, list)  # noqa: S101 — guaranteed by the list-marker branch above
+            result_list.extend(tail)
+        return result_list
     return value
 
 
 def _format_report_value(value: _JSONValue) -> str:
-    """Format a diff value for a single Markdown resource-details table cell.
+    r"""Format a diff value for a single Markdown resource-details table cell.
 
-    Preserves the `(sensitive value)` and `(known after apply) ⏳` display sentinels,
-    renders dicts and lists as compact JSON (using JSON literals rather than Python
-    `repr`), normalizes line endings into visible escaped notation, and escapes
-    literal `|` characters with the GFM table-cell backslash form.
+    Structured values (dicts and lists) render as compact, valid JSON. A
+    literal `|` is replaced with the JSON escape sequence `\\u007c` — not the
+    GFM backslash form — so the cell cannot gain a phantom table column while
+    the text remains valid JSON that round-trips through `json.loads`.
+    Physical line breaks inside a JSON string are already valid JSON escapes,
+    so structured values receive no separate newline normalization.
+
+    Scalar strings — including the `(sensitive value)` and `(known after
+    apply) ⏳` display sentinels — are not JSON documents, so they normalize
+    line endings into visible `\\n` notation and escape literal `|` with the
+    GFM table-cell backslash form instead.
+
+    Other scalars (`null`, booleans, numbers) render as their JSON literal.
     """
-    if isinstance(value, str) and value in _DISPLAY_SENTINELS:
-        text = value
-    elif isinstance(value, dict | list):
-        text = json.dumps(value, ensure_ascii=False)
-    elif isinstance(value, str):
-        text = value
-    else:
-        text = json.dumps(value, ensure_ascii=False)
-    text = text.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "\\n")
-    return text.replace("|", r"\|")
+    if isinstance(value, dict | list):
+        return json.dumps(value, ensure_ascii=False).replace("|", r"\u007c")
+    if isinstance(value, str):
+        text = value.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "\\n")
+        return text.replace("|", r"\|")
+    return json.dumps(value, ensure_ascii=False)
 
 
 def calculate_diff(
@@ -129,10 +181,17 @@ def calculate_diff(
 
     for k in sorted(all_keys):
         val_before = before.get(k)
-        val_after = after.get(k)
 
-        # Recursively substitute nested `after_unknown` markers into the after value
-        val_after = _resolve_after_unknown(val_after, unknown.get(k))
+        if k in after:
+            # Recursively substitute nested `after_unknown` markers into the after value
+            val_after = _resolve_after_unknown(after[k], unknown.get(k))
+        else:
+            # No concrete after value: surface a marker-only unknown subtree if one
+            # exists, rather than resolving against an absent `None` value (which
+            # would trigger the shape-mismatch rule and drop it).
+            present, val_after = _materialize_unknown_marker(unknown.get(k))
+            if not present:
+                val_after = None
 
         if val_before != val_after:
             if _is_sensitive(_marker_for_key(before_sensitive, k)) or _is_sensitive(

@@ -21,6 +21,11 @@ The system SHALL render changed dict and list values as valid JSON in resource-d
 - **THEN** the rendered cell uses JSON object syntax and the JSON literal `null`
 - **THEN** the rendered cell does not use Python single-quoted keys or the `None` literal
 
+#### Scenario: Structured string value contains a pipe and newline
+- **WHEN** a non-sensitive changed attribute is a nested structure whose string value contains both `|` and a line feed
+- **THEN** its resource-details row remains one physical Markdown table line
+- **THEN** the rendered cell parses as JSON and round-trips to the original structured value
+
 ### Requirement: Nested unknown values are represented recursively
 The system SHALL recursively apply Terraform `after_unknown` markers to nested object and list values before rendering. A truthy marker SHALL render the marked value as `(known after apply) ⏳`, including when the marked object property is absent from the concrete `after` value. A dict or list marker that does not match the corresponding concrete value shape SHALL leave that concrete value unchanged.
 

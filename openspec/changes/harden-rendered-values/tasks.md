@@ -27,3 +27,8 @@
 - [x] 5.1 Emit rendered Markdown literally to stdout so JSON lists cannot be consumed as Rich markup.
 - [x] 5.2 Retain concrete values when nested `after_unknown` container markers do not match their shape.
 - [x] 5.3 Strengthen regressions for stdout JSON lists, mismatched markers, JSON nulls, and list-element replacement.
+- [x] 5.4 Materialize nested marker-only containers and trim trailing false list markers without weakening shape-mismatch retention.
+- [x] 5.5 Keep structured values containing pipes valid JSON while preserving Markdown table structure.
+- [x] 5.6 Prove byte-identical stdout/file reports and consolidate the duplicated fixture CLI helper.
+- [x] 5.7 Remove vestigial sentinel formatting and resolver aliases.
+- [x] 5.8 Update current documentation to describe literal Typer stdout output and the removed Rich dependency.
