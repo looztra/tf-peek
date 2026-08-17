@@ -1,4 +1,4 @@
-"""Defect ledger for issues catalogued in the capability study.
+"""Defect ledger for the six issues catalogued in `docs/studies/2026-08-15-capability-and-market-analysis.md §4.1`.
 
 Unresolved assertions are `@pytest.mark.xfail(strict=True, ...)`: each currently
 fails for exactly the stated reason, and `strict=True` turns an unexpected pass
@@ -142,7 +142,7 @@ def test_determinism_across_hash_seeds(tmp_path: Path) -> None:
     config_file.write_text("")
 
     outputs = set()
-    for seed in range(5):
+    for seed in range(20):
         result = subprocess.run(  # noqa: S603
             [
                 sys.executable,
@@ -166,9 +166,13 @@ def test_calculate_diff_returns_sorted_keys() -> None:
     """Fast in-process companion to the subprocess determinism test.
 
     The subprocess test proves the non-determinism property; this one locates
-    the break (unsorted key iteration).
+    the break (unsorted key iteration). Includes a key present only in
+    `after_unknown` to confirm unknown-only keys are merged into the same
+    lexical order as before/after keys, not appended out of order.
     """
     before = {"zebra": "a", "mango": "b", "apple": "c"}
     after = {"zebra": "x", "mango": "y", "apple": "z"}
-    diff = calculate_diff(before, after, None)
+    unknown = {"banana": True}
+    diff = calculate_diff(before, after, unknown)
     assert list(diff.keys()) == sorted(diff.keys())
+    assert list(diff.keys()) == ["apple", "banana", "mango", "zebra"]

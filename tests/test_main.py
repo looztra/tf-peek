@@ -315,6 +315,37 @@ def test_no_critical_section_when_no_critical_ops(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Integration: resource-type tie-break ordering
+# ---------------------------------------------------------------------------
+
+
+def test_resource_type_tie_break_preserves_plan_encounter_order(tmp_path: Path) -> None:
+    """Equal per-type counts for an action break ties by plan order, not resorted.
+
+    `_sort_by_type` sorts resource types by descending count within each action;
+    Python's sort is stable, so types with equal counts must keep the order they
+    were first encountered in the plan. This pins that guarantee against a
+    fixture that actually produces a tie.
+    """
+    plan = _make_plan(
+        [
+            _rc_entry("google_storage_bucket", "b1", ["create"], after={"name": "b1"}),
+            _rc_entry("google_sql_database_instance", "db1", ["create"], after={"name": "db1"}),
+        ]
+    )
+    report = _run_generate(plan, "", tmp_path)
+
+    detail_idx = report.find("🔍 Resource Details")
+    assert detail_idx != -1
+    details = report[detail_idx:]
+    bucket_idx = details.find("google_storage_bucket.b1")
+    db_idx = details.find("google_sql_database_instance.db1")
+    assert bucket_idx != -1
+    assert db_idx != -1
+    assert bucket_idx < db_idx, "tied resource types were reordered instead of preserving plan order"
+
+
 def test_detail_summary_renders_title_only(tmp_path: Path) -> None:
     """Detail = summary shows the resource title but hides diff details."""
     plan = _make_plan(
