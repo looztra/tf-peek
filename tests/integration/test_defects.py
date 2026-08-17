@@ -38,6 +38,18 @@ def _run_generate(fixture_name: str, tmp_path: Path, extra_args: list[str] | Non
     return output_file.read_text()
 
 
+def _run_generate_stdout(fixture_name: str, tmp_path: Path) -> str:
+    """Render a fixture plan through the CLI's default stdout path."""
+    config_file = tmp_path / "peek_config.toml"
+    config_file.write_text("")
+    result = CliRunner().invoke(
+        app,
+        [str(_FIXTURES / fixture_name), "--config", str(config_file)],
+    )
+    assert result.exit_code == 0, result.output
+    return result.output
+
+
 # ---------------------------------------------------------------------------
 # D1 — sensitive values leaked in plaintext
 # ---------------------------------------------------------------------------
@@ -117,6 +129,7 @@ def test_nested_values_rendered_as_json(tmp_path: Path) -> None:
     report = _run_generate("nested-unknown.json", tmp_path)
     assert "'tier'" not in report, "Python repr single-quoted key found"
     assert "None" not in report, "Python repr None literal found instead of JSON null"
+    assert '"note": null' in report
 
 
 # ---------------------------------------------------------------------------
@@ -135,6 +148,23 @@ def test_nested_after_unknown_surfaces_for_list_element(tmp_path: Path) -> None:
     report = _run_generate("nested-unknown-list.json", tmp_path)
     assert "known after apply" in report
     assert '"prod"' in report, "known list element must retain its concrete value"
+    assert '`["prod", "(known after apply) ⏳"]`' in report
+
+
+def test_mismatched_unknown_marker_retains_concrete_value() -> None:
+    """A malformed container marker cannot replace a concrete scalar value."""
+    diff = calculate_diff(
+        {"config": "old-value"},
+        {"config": "raw-string"},
+        {"config": {"nested": True}},
+    )
+    assert diff["config"] == {"before": "old-value", "after": "raw-string"}
+
+
+def test_stdout_preserves_json_list_literals(tmp_path: Path) -> None:
+    """Rich markup parsing cannot consume JSON emitted by the stdout path."""
+    report = _run_generate_stdout("stdout-json-list.json", tmp_path)
+    assert "[true, false, null]" in report
 
 
 # ---------------------------------------------------------------------------

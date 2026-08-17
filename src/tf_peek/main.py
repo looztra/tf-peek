@@ -5,7 +5,6 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-import rich
 import typer
 from jinja2 import Environment, FileSystemLoader
 
@@ -62,14 +61,18 @@ def _resolve_after_unknown(value: _JSONValue, marker: bool | dict[str, Any] | li
     if marker is True:
         return _KNOWN_AFTER_APPLY
     if isinstance(marker, dict):
-        base = value if isinstance(value, dict) else {}
+        if not isinstance(value, dict):
+            return value
+        base = value
         result = {key: _resolve_after_unknown(val, marker.get(key)) for key, val in base.items()}
         for key in sorted(marker):
             if key not in result:
                 result[key] = _resolve_after_unknown(None, marker[key])
         return result
     if isinstance(marker, list):
-        base = value if isinstance(value, list) else []
+        if not isinstance(value, list):
+            return value
+        base = value
         length = max(len(base), len(marker))
         return [
             _resolve_after_unknown(
@@ -295,7 +298,7 @@ def generate(
         output_file.write_text(rendered_content)
         typer.echo(f"Report written to {output_file}")
     else:
-        rich.print(rendered_content)
+        typer.echo(rendered_content, nl=False)
 
 
 if __name__ == "__main__":

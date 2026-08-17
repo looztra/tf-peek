@@ -28,6 +28,7 @@ Add a recursive transformation over an `after` value and its shape-mirroring `af
 - Object markers recurse by key and include keys that exist only in the marker, so unknown-only properties are not omitted.
 - List markers recurse by index; a truthy element marker replaces that element, while object markers inside an element recurse normally.
 - Use deterministic object-key ordering where the transformation creates a merged object.
+- If an object or list marker does not match the concrete value's shape, retain the concrete value rather than replacing it with an empty marker-shaped container.
 
 This leaves the top-level diff model unchanged: one changed top-level Terraform attribute still produces one report row. It resolves the correctness defect without prematurely adopting the later path-level diff design.
 
@@ -41,6 +42,10 @@ Keep diff calculation responsible for semantic comparison and sensitivity maskin
 - Escape Markdown table delimiters after serialization so a `|` remains data, not a cell boundary.
 
 Formatting after masking is non-negotiable: serializing first would create an alternate path that could expose sensitive values. A single formatter prevents the critical and normal report sections from drifting because they share table structure but are rendered by separate template blocks.
+
+### Preserve rendered Markdown at the CLI boundary
+
+The default stdout path must emit the completed Markdown literally. Rich markup parsing treats JSON lists that begin with lowercase literals as markup, so it cannot consume rendered report content. Use a literal-output API for stdout; `--output` already writes the same completed string directly.
 
 ### Keep the template presentation-only
 

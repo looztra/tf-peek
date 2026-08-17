@@ -21,3 +21,9 @@
 ## 4. Documentation
 
 - [x] 4.1 Update `docs/studies/2026-08-15-capability-and-market-analysis.md` to record D3, D4, and D5 as resolved and reflect the resulting P0 status.
+
+## 5. Review remediation
+
+- [x] 5.1 Emit rendered Markdown literally to stdout so JSON lists cannot be consumed as Rich markup.
+- [x] 5.2 Retain concrete values when nested `after_unknown` container markers do not match their shape.
+- [x] 5.3 Strengthen regressions for stdout JSON lists, mismatched markers, JSON nulls, and list-element replacement.

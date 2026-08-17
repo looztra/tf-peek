@@ -22,7 +22,7 @@ The system SHALL render changed dict and list values as valid JSON in resource-d
 - **THEN** the rendered cell does not use Python single-quoted keys or the `None` literal
 
 ### Requirement: Nested unknown values are represented recursively
-The system SHALL recursively apply Terraform `after_unknown` markers to nested object and list values before rendering. A truthy marker SHALL render the marked value as `(known after apply) ⏳`, including when the marked object property is absent from the concrete `after` value.
+The system SHALL recursively apply Terraform `after_unknown` markers to nested object and list values before rendering. A truthy marker SHALL render the marked value as `(known after apply) ⏳`, including when the marked object property is absent from the concrete `after` value. A dict or list marker that does not match the corresponding concrete value shape SHALL leave that concrete value unchanged.
 
 #### Scenario: Unknown nested object property is absent from after
 - **WHEN** an attribute's `after` value contains `settings.tier` and its nested `after_unknown` marker identifies `settings.ip_address` as true
@@ -32,6 +32,17 @@ The system SHALL recursively apply Terraform `after_unknown` markers to nested o
 #### Scenario: Unknown list element
 - **WHEN** a nested `after_unknown` marker identifies an element or property within a list as true
 - **THEN** that list element or property is represented as `(known after apply) ⏳` in the rendered JSON value
+
+#### Scenario: Marker shape does not match concrete value
+- **WHEN** a dict or list `after_unknown` marker is paired with a scalar or a differently shaped concrete value
+- **THEN** the rendered value retains that concrete value rather than replacing it with marker-only structure
+
+### Requirement: Rendered content survives each output destination
+The system SHALL emit identical report Markdown whether writing to `--output` or the default stdout destination. Report content SHALL NOT be interpreted as console markup.
+
+#### Scenario: JSON list begins with a lowercase literal
+- **WHEN** a rendered structured value begins with a JSON list containing `null`, `true`, or `false`
+- **THEN** the complete JSON list appears in stdout output unchanged
 
 ### Requirement: Value presentation preserves sensitive-value protection
 The system SHALL apply existing sensitive-value masking before value presentation. Presentation formatting SHALL NOT expose a value that the report would otherwise replace with `(sensitive value)`.
