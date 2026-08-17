@@ -42,6 +42,67 @@ def _marker_for_key(
     return marker.get(key) if isinstance(marker, dict) else marker
 
 
+_KNOWN_AFTER_APPLY = "(known after apply) ⏳"
+_SENSITIVE_VALUE = "(sensitive value)"
+_DISPLAY_SENTINELS = {_KNOWN_AFTER_APPLY, _SENSITIVE_VALUE}
+
+_JSONValue = str | int | float | bool | dict[str, "_JSONValue"] | list["_JSONValue"] | None
+
+
+def _resolve_after_unknown(value: _JSONValue, marker: bool | dict[str, Any] | list[Any] | None) -> _JSONValue:
+    """Recursively substitute `after_unknown` markers into a concrete `after` value.
+
+    A truthy marker replaces the value at that position with the known-after-apply
+    display sentinel. Object markers recurse by key, including keys that exist only
+    in the marker (so unknown-only properties are not omitted); marker-only keys are
+    visited in sorted order to keep output deterministic. List markers recurse by
+    index. Any other marker shape (`False`, `None`, or a marker that does not match
+    the value's shape) leaves the value unchanged.
+    """
+    if marker is True:
+        return _KNOWN_AFTER_APPLY
+    if isinstance(marker, dict):
+        base = value if isinstance(value, dict) else {}
+        result = {key: _resolve_after_unknown(val, marker.get(key)) for key, val in base.items()}
+        for key in sorted(marker):
+            if key not in result:
+                result[key] = _resolve_after_unknown(None, marker[key])
+        return result
+    if isinstance(marker, list):
+        base = value if isinstance(value, list) else []
+        length = max(len(base), len(marker))
+        return [
+            _resolve_after_unknown(
+                base[i] if i < len(base) else None,
+                marker[i] if i < len(marker) else None,
+            )
+            for i in range(length)
+        ]
+    return value
+
+
+def _format_report_value(value: _JSONValue) -> str:
+    """Format a diff value for a single Markdown resource-details table cell.
+
+    Preserves the `(sensitive value)` and `(known after apply) ⏳` display sentinels,
+    renders dicts and lists as compact JSON (using JSON literals rather than Python
+    `repr`), normalizes line endings into visible escaped notation, and substitutes
+    a non-colliding lookalike for literal `|` characters. A backslash escape would
+    remain a literal `|` byte inside the backtick-quoted table cell and still split
+    the row, so the pipe itself must not survive into the rendered cell.
+    """
+    if isinstance(value, str) and value in _DISPLAY_SENTINELS:
+        text = value
+    elif isinstance(value, dict | list):
+        text = json.dumps(value, ensure_ascii=False)
+    elif isinstance(value, str):
+        text = value
+    else:
+        text = json.dumps(value, ensure_ascii=False)
+    text = text.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "\\n")
+    return text.replace("|", "\uff5c")
+
+
 def calculate_diff(
     before: dict[str, Any] | None,
     after: dict[str, Any] | None,
@@ -69,16 +130,15 @@ def calculate_diff(
         val_before = before.get(k)
         val_after = after.get(k)
 
-        # If the value is marked as unknown in the plan
-        if k in unknown and unknown[k] is True:
-            val_after = "(known after apply) ⏳"
+        # Recursively substitute nested `after_unknown` markers into the after value
+        val_after = _resolve_after_unknown(val_after, unknown.get(k))
 
         if val_before != val_after:
             if _is_sensitive(_marker_for_key(before_sensitive, k)) or _is_sensitive(
                 _marker_for_key(after_sensitive, k)
             ):
-                val_before = "(sensitive value)"
-                val_after = "(sensitive value)"
+                val_before = _SENSITIVE_VALUE
+                val_after = _SENSITIVE_VALUE
             diff[k] = {"before": val_before, "after": val_after}
     return diff
 
@@ -157,13 +217,20 @@ def generate(
         if not is_summarized:
             before_sensitive = None if show_sensitive else rc.change.before_sensitive
             after_sensitive = None if show_sensitive else rc.change.after_sensitive
-            diff = calculate_diff(
+            raw_diff = calculate_diff(
                 rc.change.before,
                 rc.change.after,
                 rc.change.after_unknown,
                 before_sensitive,
                 after_sensitive,
             )
+            diff = {
+                attr: {
+                    "before": _format_report_value(val["before"]),
+                    "after": _format_report_value(val["after"]),
+                }
+                for attr, val in raw_diff.items()
+            }
 
         resource_entry: dict[str, Any] = {
             "address": rc.address,

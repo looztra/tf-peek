@@ -19,19 +19,19 @@
 | Property | Value |
 | :--- | :--- |
 {% for attr, val in res.diff.items() %}
-| `{{ attr }}` | `{{ val.after | default('null', true) }}` |
+| `{{ attr }}` | `{{ val.after }}` |
 {% endfor %}
 {% elif action == 'delete' %}
 | Property | Value |
 | :--- | :--- |
 {% for attr, val in res.diff.items() %}
-| `{{ attr }}` | `{{ val.before | default('null', true) }}` |
+| `{{ attr }}` | `{{ val.before }}` |
 {% endfor %}
 {% else %}
 | Property | Before | After |
 | :--- | :--- | :--- |
 {% for attr, val in res.diff.items() %}
-| `{{ attr }}` | `{{ val.before | default('null', true) }}` | `{{ val.after | default('null', true) }}` |
+| `{{ attr }}` | `{{ val.before }}` | `{{ val.after }}` |
 {% endfor %}
 {% endif %}
 {% else %}
@@ -124,19 +124,19 @@
 | Property | Value |
 | :--- | :--- |
 {% for attr, val in res.diff.items() %}
-| `{{ attr }}` | `{{ val.after | default('null', true) }}` |
+| `{{ attr }}` | `{{ val.after }}` |
 {% endfor %}
 {% elif action == 'delete' %}
 | Property | Value |
 | :--- | :--- |
 {% for attr, val in res.diff.items() %}
-| `{{ attr }}` | `{{ val.before | default('null', true) }}` |
+| `{{ attr }}` | `{{ val.before }}` |
 {% endfor %}
 {% else %}
 | Property | Before | After |
 | :--- | :--- | :--- |
 {% for attr, val in res.diff.items() %}
-| `{{ attr }}` | `{{ val.before | default('null', true) }}` | `{{ val.after | default('null', true) }}` |
+| `{{ attr }}` | `{{ val.before }}` | `{{ val.after }}` |
 {% endfor %}
 {% endif %}
 {% else %}

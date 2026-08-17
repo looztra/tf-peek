@@ -1,8 +1,7 @@
 """Defect ledger for the six issues catalogued in `docs/studies/2026-08-15-capability-and-market-analysis.md §4.1`.
 
-Unresolved assertions are `@pytest.mark.xfail(strict=True, ...)`: each currently
-fails for exactly the stated reason, and `strict=True` turns an unexpected pass
-into a CI failure. Resolved defects remain required passing regressions.
+D1-D5 are resolved; every assertion below is a required passing regression.
+D6 (documented CLI invocation) is a separate, out-of-scope documentation defect.
 """
 
 import os
@@ -10,7 +9,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
 from typer.testing import CliRunner
 
 from tf_peek.main import app, calculate_diff
@@ -75,12 +73,20 @@ def test_show_sensitive_flag_renders_underlying_values(tmp_path: Path) -> None:
     assert "s3cr3t!" in report
 
 
+def test_sensitive_structured_value_with_control_characters_masked(tmp_path: Path) -> None:
+    """A sensitive structured value containing pipes/newlines never leaks its content."""
+    report = _run_generate("sensitive-structured-hostile.json", tmp_path)
+    assert "old | secret" not in report
+    assert "new | secret" not in report
+    assert "line2" not in report
+    assert "(sensitive value)" in report
+
+
 # ---------------------------------------------------------------------------
 # D3 — hostile strings (pipe + newline) break the Markdown table
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="D3: unescaped values break the Markdown table")
 def test_hostile_strings_do_not_break_table(tmp_path: Path) -> None:
     """Assert the resource-details table survives a hostile value intact.
 
@@ -106,7 +112,6 @@ def test_hostile_strings_do_not_break_table(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="D4: nested structures are dumped as Python repr, not JSON")
 def test_nested_values_rendered_as_json(tmp_path: Path) -> None:
     """Nested dict/list values must render as JSON, not Python `repr`."""
     report = _run_generate("nested-unknown.json", tmp_path)
@@ -119,11 +124,17 @@ def test_nested_values_rendered_as_json(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="D5: nested after_unknown is silently dropped")
 def test_nested_after_unknown_surfaces(tmp_path: Path) -> None:
     """A value known-after-apply nested inside a block must be surfaced, not dropped."""
     report = _run_generate("nested-unknown.json", tmp_path)
     assert "known after apply" in report
+
+
+def test_nested_after_unknown_surfaces_for_list_element(tmp_path: Path) -> None:
+    """A truthy `after_unknown` marker for a list element/index is surfaced, not dropped."""
+    report = _run_generate("nested-unknown-list.json", tmp_path)
+    assert "known after apply" in report
+    assert '"prod"' in report, "known list element must retain its concrete value"
 
 
 # ---------------------------------------------------------------------------
