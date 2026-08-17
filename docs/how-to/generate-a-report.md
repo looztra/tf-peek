@@ -22,10 +22,10 @@ terraform show -json tfplan > plan.json
 
 ## Generate and print to stdout
 
-Pass the JSON file as the positional argument to `tf-peek generate`:
+Pass the JSON file as the positional argument to `tf-peek`:
 
 ```bash
-tf-peek generate plan.json
+tf-peek plan.json
 ```
 
 The Markdown report is printed to stdout. You can pipe it to any tool that accepts Markdown.
@@ -37,7 +37,7 @@ The Markdown report is printed to stdout. You can pipe it to any tool that accep
 To write the report to a file instead of printing it, use `--output` (short form: `-o`):
 
 ```bash
-tf-peek generate plan.json --output report.md
+tf-peek plan.json --output report.md
 ```
 
 If the file already exists, `tf-peek` will overwrite it and print a notice:
@@ -55,7 +55,7 @@ By default `tf-peek` looks for `peek_config.toml` in the current working directo
 To point it at a different file, use `--config` (short form: `-c`):
 
 ```bash
-tf-peek generate plan.json --config path/to/my-config.toml
+tf-peek plan.json --config path/to/my-config.toml
 ```
 
 If neither the default file nor the specified file exists, `tf-peek` proceeds with an empty
@@ -68,7 +68,7 @@ configuration (all resources are classified as `normal`).
 Options can be combined freely:
 
 ```bash
-tf-peek generate plan.json \
+tf-peek plan.json \
   --config infra/peek_config.toml \
   --output reports/$(date +%Y%m%d).md
 ```

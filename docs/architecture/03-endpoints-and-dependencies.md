@@ -6,7 +6,7 @@ command entry point and the flow of data through the system.
 ## CLI Command
 
 ```text
-tf-peek generate <json_path> [--config <config_file>] [--output <output_file>]
+tf-peek <json_path> [--config <config_file>] [--output <output_file>]
 ```
 
 | Argument / Option | Description                                                        |
@@ -19,7 +19,7 @@ tf-peek generate <json_path> [--config <config_file>] [--output <output_file>]
 
 ```mermaid
 flowchart TD
-    A([User: tf-peek generate]) --> B[Load PeekConfig\nfrom peek_config.toml]
+    A([User: tf-peek]) --> B[Load PeekConfig\nfrom peek_config.toml]
     A --> C[Read & parse\nTerraform plan JSON]
     B --> D[Filter resource_changes\nignore / summarize rules]
     C --> D
