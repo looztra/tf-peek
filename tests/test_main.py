@@ -1,6 +1,7 @@
 """Tests for tf_peek main logic."""
 
 import json
+from importlib.metadata import version as package_version
 from pathlib import Path
 from typing import Any
 
@@ -270,6 +271,43 @@ def test_generate_without_output_writes_report_to_stdout(tmp_path: Path) -> None
     result = runner.invoke(app, [str(plan_file), "--config", str(config_file)])
     assert result.exit_code == 0, result.output
     assert "google_storage_bucket.b1" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Integration: CLI invocation surface
+# ---------------------------------------------------------------------------
+
+
+def test_version_flag_prints_installed_version_and_exits_zero() -> None:
+    """--version prints the installed tf-peek version and exits 0 without a plan path."""
+    runner = CliRunner()
+    result = runner.invoke(app, ["--version"])
+    assert result.exit_code == 0, result.output
+    assert result.output.strip() == package_version("tf-peek")
+
+
+def test_version_short_flag_behaves_like_long_flag() -> None:
+    """-V behaves identically to --version."""
+    runner = CliRunner()
+    long_form = runner.invoke(app, ["--version"])
+    short_form = runner.invoke(app, ["-V"])
+    assert short_form.exit_code == 0, short_form.output
+    assert short_form.output == long_form.output
+
+
+def test_generate_subcommand_is_rejected(tmp_path: Path) -> None:
+    """The removed `generate` subcommand is rejected as an unexpected argument, not accepted.
+
+    Regression guard for D6: `tf-peek generate plan.json` has never worked (typer collapses a
+    single-command app), so it must keep failing rather than silently start working again in a
+    shape the docs don't describe.
+    """
+    plan_file = tmp_path / "plan.json"
+    plan_file.write_text(json.dumps(_make_plan([])))
+
+    runner = CliRunner()
+    result = runner.invoke(app, ["generate", str(plan_file)])
+    assert result.exit_code != 0
 
 
 # ---------------------------------------------------------------------------

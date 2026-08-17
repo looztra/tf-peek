@@ -2,6 +2,7 @@
 
 import json
 from collections import defaultdict
+from importlib.metadata import version as _package_version
 from pathlib import Path
 from typing import Any
 
@@ -301,6 +302,18 @@ def _build_type_action_row(rtype: str, counts: dict[str, int]) -> dict[str, Any]
     }
 
 
+def _version_callback(show_version: bool) -> None:
+    """Print the installed tf-peek version and exit, if the flag was passed.
+
+    Registered as an eager typer callback so it runs — and can exit — before
+    the required ``json_path`` argument is validated, matching the standard
+    click/typer ``--version`` pattern.
+    """
+    if show_version:
+        typer.echo(_package_version("tf-peek"))
+        raise typer.Exit
+
+
 @app.command()
 def generate(
     json_path: Path = typer.Argument(..., help="JSON plan file"),
@@ -310,6 +323,14 @@ def generate(
     ),
     show_sensitive: bool = typer.Option(
         False, "--show-sensitive", help="Render sensitive attribute values instead of masking them"
+    ),
+    _version: bool = typer.Option(
+        False,
+        "--version",
+        "-V",
+        callback=_version_callback,
+        is_eager=True,
+        help="Show the installed tf-peek version and exit.",
     ),
 ) -> None:
     """Generate a markdown report from a terraform plan JSON."""
