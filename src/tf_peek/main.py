@@ -150,11 +150,10 @@ def _resolve_marker_only(marker: _Marker) -> _Resolved:
     return _MISSING
 
 
-def _resolve_after_unknown(value: _Resolved, marker: _Marker) -> _Resolved:
+def _resolve_after_unknown(value: _ReportValue, marker: _Marker) -> _Resolved:
     """Recursively substitute ``after_unknown`` markers into a concrete ``after`` value.
 
-    ``value`` is ``_MISSING`` when the position has no concrete counterpart. A
-    ``true`` marker replaces the position with the known-after-apply sentinel. A
+    A ``true`` marker replaces the position with the known-after-apply sentinel. A
     dict marker recurses by key, keeping the concrete value's key order and
     appending marker-only keys in sorted order; a marker-only key surfaces only
     if its subtree contains a ``true`` leaf. A list marker recurses by index for
@@ -187,9 +186,9 @@ def _resolve_present(value: _ReportValue, marker: _Marker) -> _ReportValue:
     return value if isinstance(resolved, _Missing) else resolved
 
 
-def _resolve_dict_marker(value: _Resolved, marker: dict[str, Any]) -> _Resolved:
-    """Apply a dict ``after_unknown`` marker to a concrete or absent value."""
-    if isinstance(value, _Missing) or value is None:
+def _resolve_dict_marker(value: _ReportValue, marker: dict[str, Any]) -> _Resolved:
+    """Apply a dict ``after_unknown`` marker to a concrete value."""
+    if value is None:
         return _resolve_marker_only(marker)
     if not isinstance(value, dict):
         return value
@@ -204,9 +203,9 @@ def _resolve_dict_marker(value: _Resolved, marker: dict[str, Any]) -> _Resolved:
     return result
 
 
-def _resolve_list_marker(value: _Resolved, marker: list[Any]) -> _Resolved:
-    """Apply a list ``after_unknown`` marker to a concrete or absent value."""
-    if isinstance(value, _Missing) or value is None:
+def _resolve_list_marker(value: _ReportValue, marker: list[Any]) -> _Resolved:
+    """Apply a list ``after_unknown`` marker to a concrete value."""
+    if value is None:
         return _resolve_marker_only(marker)
     if not isinstance(value, list):
         return value
@@ -223,32 +222,24 @@ def _format_report_value(value: _ReportValue) -> str:
     r"""Format a diff value for a single Markdown resource-details table cell.
 
     Display sentinels (sensitive-value and known-after-apply markers) render as
-    their bare human-readable text. Structured values (dicts and lists) render
-    as compact, valid JSON with ``|`` escaped as ``\u007c`` and backticks as
-    ``\u0060`` so the cell cannot gain a phantom table column or close its
-    code-span wrapper, while the text round-trips through ``json.loads``.
-    Scalar strings render as JSON-quoted strings (so a string ``"false"`` stays
-    distinct from a boolean ``false`` and an empty string stays visible), with
-    the same ``|`` and backtick escapes applied over the quoted text. Other
-    scalars (``null``, booleans, numbers) render as their JSON literal.
+    their bare human-readable text. Every other value renders as JSON with ``|``
+    escaped as ``\u007c`` and backticks as ``\u0060`` so the cell cannot gain a
+    phantom table column or close its code-span wrapper: dicts and lists as
+    compact objects/arrays that round-trip through ``json.loads``, strings as
+    quoted literals (so a string ``"false"`` stays distinct from a boolean
+    ``false`` and an empty string stays visible), and other scalars (``null``,
+    booleans, numbers) as their bare JSON literal. The two escapes are no-ops for
+    scalars, which cannot contain either delimiter.
     """
     if isinstance(value, _DisplaySentinel):
         return value.text
-    if isinstance(value, dict | list):
-        return (
-            json.dumps(value, ensure_ascii=False, default=_json_default)
-            .replace("|", r"\u007c")
-            .replace("`", r"\u0060")
-        )
-    if isinstance(value, str):
-        return json.dumps(value, ensure_ascii=False).replace("|", r"\u007c").replace("`", r"\u0060")
-    return json.dumps(value, ensure_ascii=False)
+    return json.dumps(value, ensure_ascii=False, default=_json_default).replace("|", r"\u007c").replace("`", r"\u0060")
 
 
 def calculate_diff(
     before: dict[str, Any] | None,
     after: dict[str, Any] | None,
-    unknown: dict[str, Any] | None,
+    unknown: _Marker = None,
     before_sensitive: _Marker = None,
     after_sensitive: _Marker = None,
 ) -> dict[str, dict[str, _ReportValue]]:
@@ -264,19 +255,28 @@ def calculate_diff(
     diff: dict[str, dict[str, _ReportValue]] = {}
     before = before or {}
     after = after or {}
-    unknown = unknown or {}
+    # Terraform emits ``after_unknown`` as a bare ``false`` when nothing is
+    # unknown (e.g. a destroy) and an object mapping attribute names to markers
+    # otherwise. Normalize to a per-key dict: ``true`` marks every known key
+    # unknown; any other non-dict shape carries no marker.
+    if unknown is True:
+        unknown_map: dict[str, Any] = dict.fromkeys(set(before) | set(after), True)
+    elif isinstance(unknown, dict):
+        unknown_map = unknown
+    else:
+        unknown_map = {}
 
-    all_keys = set(before.keys()) | set(after.keys()) | set(unknown.keys())
+    all_keys = set(before.keys()) | set(after.keys()) | set(unknown_map.keys())
 
     for k in sorted(all_keys):
         val_before: _ReportValue = before.get(k)
-        marker = unknown.get(k)
+        marker = unknown_map.get(k)
         if k in after:
             val_after = _resolve_present(after[k], marker)
         else:
             # No concrete counterpart: surface a marker-only unknown subtree if
             # one exists, otherwise report the attribute as absent.
-            resolved = _resolve_after_unknown(_MISSING, marker)
+            resolved = _resolve_marker_only(marker)
             val_after = None if isinstance(resolved, _Missing) else resolved
 
         if val_before != val_after:
@@ -447,7 +447,10 @@ def generate(
         output_file.write_text(rendered_content, encoding="utf-8", newline="\n")
         typer.echo(f"Report written to {output_file}")
     else:
-        typer.echo(rendered_content, nl=False)
+        # ``color=True`` stops click from stripping ANSI escapes when stdout is
+        # not a TTY, so report content reaches stdout byte-identically to the
+        # ``--output`` file.
+        typer.echo(rendered_content, nl=False, color=True)
 
 
 if __name__ == "__main__":

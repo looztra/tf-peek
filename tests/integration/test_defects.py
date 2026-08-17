@@ -295,6 +295,19 @@ def test_concrete_key_order_is_preserved_and_marker_only_keys_appended() -> None
     )
 
 
+def test_delete_with_bare_bool_after_unknown_renders(tmp_path: Path) -> None:
+    """A destroy (``after_unknown: false``) parses and renders its before value.
+
+    Terraform emits ``after_unknown`` as a bare boolean ``false`` when a resource
+    change has no unknown attributes — the normal encoding for a delete, whose
+    ``after`` is null. The model and resolver must accept the boolean form, not
+    only an object mapping attribute names to markers.
+    """
+    report = _run_generate("delete-known.json", tmp_path).decode()
+    assert '"docs-bucket"' in report
+    assert '"US"' in report
+
+
 def test_stdout_and_file_are_byte_identical_under_an_ascii_locale(tmp_path: Path) -> None:
     """Both destinations emit the same bytes even when the ambient locale is ASCII.
 

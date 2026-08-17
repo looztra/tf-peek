@@ -96,6 +96,18 @@ def test_calculate_diff_known_after_apply() -> None:
     assert diff["id"] == {"before": None, "after": _KNOWN_AFTER_APPLY}
 
 
+def test_calculate_diff_bare_bool_after_unknown_false() -> None:
+    """A bare ``false`` ``after_unknown`` marks every attribute known."""
+    diff = calculate_diff({"attr": "old"}, {"attr": "new"}, False)
+    assert diff["attr"] == {"before": "old", "after": "new"}
+
+
+def test_calculate_diff_bare_bool_after_unknown_true() -> None:
+    """A bare ``true`` ``after_unknown`` marks every known key unknown."""
+    diff = calculate_diff({"attr": "old"}, {"attr": "new"}, True)
+    assert diff["attr"] == {"before": "old", "after": _KNOWN_AFTER_APPLY}
+
+
 def test_calculate_diff_masks_flat_sensitive() -> None:
     """A flat bool sensitivity marker masks the attribute's value on both sides."""
     before = {"password": "hunter2"}
