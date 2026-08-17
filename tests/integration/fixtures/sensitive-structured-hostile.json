@@ -1,0 +1,32 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.5",
+  "resource_changes": [
+    {
+      "address": "google_sql_database_instance.prod",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "google_sql_database_instance",
+      "name": "prod",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "credentials": { "password": "old | secret\nline2" }
+        },
+        "after": {
+          "credentials": { "password": "new | secret\nline2" }
+        },
+        "after_unknown": {
+          "credentials": { "password": false }
+        },
+        "before_sensitive": {
+          "credentials": { "password": true }
+        },
+        "after_sensitive": {
+          "credentials": { "password": true }
+        }
+      }
+    }
+  ]
+}

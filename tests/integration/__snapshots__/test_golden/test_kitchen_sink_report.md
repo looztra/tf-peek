@@ -37,7 +37,8 @@
 | Property | Before | After |
 | :--- | :--- | :--- |
 | `password` | `(sensitive value)` | `(sensitive value)` |
-| `settings` | `[{'tier': 'db-f1-micro', 'flags': [{'name': 'max_connections', 'value': '100'}]}]` | `[{'tier': 'db-n1-standard-1', 'flags': [{'name': 'max_connections', 'value': '100'}]}]` |
+| `settings` | `[{"tier": "db-f1-micro", "flags": [{"name": "max_connections", "value": "100"}]}]` | `[{"tier": "db-n1-standard-1", "flags": "(known after apply) ⏳", "ip_address": "(known after apply) ⏳"}]` |
+
 
 </details>
 
@@ -53,7 +54,7 @@
 
 | Property | Before | After |
 | :--- | :--- | :--- |
-| `desc` | `old description` | `has | pipe
-and a newline` |
+| `desc` | `"old description"` | `"has \u007c pipe\nand a newline"` |
+
 
 </details>

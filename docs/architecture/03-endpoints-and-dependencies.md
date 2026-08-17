@@ -24,11 +24,13 @@ flowchart TD
     B --> D[Filter resource_changes\nignore / summarize rules]
     C --> D
     D --> E[Classify actions\ncreate / update / delete / replace]
-    E --> F[Compute attribute diffs\nbefore vs after]
-    F --> G[Render Jinja2 template\nreport.md.j2]
+    E --> F[Compute attribute diffs\nbefore vs after\n+ resolve nested after_unknown]
+    F --> F2[Mask sensitive attributes\nunless --show-sensitive]
+    F2 --> F3[Format cells\nJSON + Markdown escaping]
+    F3 --> G[Render Jinja2 template\nreport.md.j2]
     G --> H{output_file?}
-    H -- yes --> I[(Write Markdown file)]
-    H -- no --> J[Print to stdout via rich]
+    H -- yes --> I[(Write Markdown file\nUTF-8 / LF)]
+    H -- no --> J[Emit Markdown literally via typer.echo]
 ```
 
 ## Internal Module Dependencies

@@ -1,0 +1,22 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.5",
+  "resource_changes": [
+    {
+      "address": "google_compute_instance.web",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "google_compute_instance",
+      "name": "web",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": ["update"],
+        "before": { "tags": ["prod", "web"] },
+        "after": { "tags": ["prod", "web"] },
+        "after_unknown": { "tags": [false, true] },
+        "before_sensitive": false,
+        "after_sensitive": false
+      }
+    }
+  ]
+}
