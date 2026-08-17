@@ -6,7 +6,7 @@ from typing import Any
 
 from typer.testing import CliRunner
 
-from tf_peek.main import app, calculate_diff, get_emoji
+from tf_peek.main import _KNOWN_AFTER_APPLY, _SENSITIVE_VALUE, app, calculate_diff, get_emoji
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -93,7 +93,7 @@ def test_calculate_diff_known_after_apply() -> None:
     """Test handling of values known after apply."""
     diff = calculate_diff({"id": None, "name": "foo"}, {"name": "foo"}, {"id": True})
     assert "name" not in diff
-    assert diff["id"] == {"before": None, "after": "(known after apply) ⏳"}
+    assert diff["id"] == {"before": None, "after": _KNOWN_AFTER_APPLY}
 
 
 def test_calculate_diff_masks_flat_sensitive() -> None:
@@ -101,7 +101,7 @@ def test_calculate_diff_masks_flat_sensitive() -> None:
     before = {"password": "hunter2"}
     after = {"password": "s3cr3t!"}
     diff = calculate_diff(before, after, None, {"password": True}, {"password": True})
-    assert diff["password"] == {"before": "(sensitive value)", "after": "(sensitive value)"}
+    assert diff["password"] == {"before": _SENSITIVE_VALUE, "after": _SENSITIVE_VALUE}
 
 
 def test_calculate_diff_masks_nested_sensitive() -> None:
@@ -111,7 +111,7 @@ def test_calculate_diff_masks_nested_sensitive() -> None:
     before_sensitive = {"settings": {"tier": False, "credentials": {"password": True}}}
     after_sensitive = {"settings": {"tier": False, "credentials": {"password": True}}}
     diff = calculate_diff(before, after, None, before_sensitive, after_sensitive)
-    assert diff["settings"] == {"before": "(sensitive value)", "after": "(sensitive value)"}
+    assert diff["settings"] == {"before": _SENSITIVE_VALUE, "after": _SENSITIVE_VALUE}
 
 
 def test_calculate_diff_masks_one_sided_sensitive() -> None:
@@ -119,7 +119,7 @@ def test_calculate_diff_masks_one_sided_sensitive() -> None:
     before = {"token": "was-plaintext"}
     after = {"token": "now-secret"}
     diff = calculate_diff(before, after, None, {"token": False}, {"token": True})
-    assert diff["token"] == {"before": "(sensitive value)", "after": "(sensitive value)"}
+    assert diff["token"] == {"before": _SENSITIVE_VALUE, "after": _SENSITIVE_VALUE}
 
 
 # ---------------------------------------------------------------------------

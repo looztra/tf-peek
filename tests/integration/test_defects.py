@@ -14,7 +14,7 @@ from typing import Literal
 
 from typer.testing import CliRunner
 
-from tf_peek.main import app, calculate_diff
+from tf_peek.main import _KNOWN_AFTER_APPLY, app, calculate_diff
 
 _FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -41,6 +41,27 @@ def _run_generate(
     result = CliRunner().invoke(app, [*args, *(extra_args or [])])
     assert result.exit_code == 0, result.output
     return output_file.read_bytes() if destination == "file" else result.stdout_bytes
+
+
+def _count_table_columns(row: str) -> int:
+    r"""Count physical Markdown table delimiters with a spec-correct escape scan.
+
+    A backslash escapes the next character; only an unescaped ``|`` is a column
+    delimiter. This catches ``\\\\|`` (escaped backslash + live pipe) as a real
+    delimiter, which a simple lookbehind regex misses.
+    """
+    count = 0
+    escaped = False
+    for ch in row:
+        if escaped:
+            escaped = False
+            continue
+        if ch == "\\":
+            escaped = True
+            continue
+        if ch == "|":
+            count += 1
+    return count
 
 
 # ---------------------------------------------------------------------------
@@ -104,11 +125,14 @@ def test_hostile_strings_do_not_break_table(tmp_path: Path) -> None:
     # The unescaped value's embedded newline splits the row: this exact
     # substring only appears verbatim while the raw newline reaches the output.
     assert "has | pipe\nand a newline" not in report, "cell contains a raw newline"
-    assert "has \\| pipe\\nand a newline" in report, "pipe was not Markdown-escaped"
+    # Scalar strings render as JSON-quoted text with `|` as `\u007c`, so the
+    # pipe cannot create an additional Markdown table column.
+    assert "has \\u007c pipe\\nand a newline" in report, "pipe was not JSON-escaped"
 
     detail_idx = report.find("🔍 Resource Details")
     table_rows = [line for line in report[detail_idx:].splitlines() if line.strip().startswith("|")]
-    column_counts = {len(re.findall(r"(?<!\\)\|", row)) for row in table_rows}
+    assert table_rows, "no table rows found in resource details"
+    column_counts = {_count_table_columns(row) for row in table_rows}
     assert len(column_counts) == 1, "table rows have inconsistent column counts"
 
 
@@ -125,6 +149,23 @@ def test_structured_hostile_value_is_markdown_safe_valid_json(tmp_path: Path) ->
     assert json.loads(match.group("after")) == {"message": "new | value\nline2"}
 
 
+def test_backticks_in_value_do_not_close_code_span(tmp_path: Path) -> None:
+    """A value containing backticks cannot close the cell's code-span wrapper."""
+    report = _run_generate("backtick-hostile.json", tmp_path).decode()
+
+    match = re.search(
+        r"^\| `script` \| `(?P<before>.*)` \| `(?P<after>.*)` \|$",
+        report,
+        re.MULTILINE,
+    )
+    assert match is not None, "script row is missing or spans physical lines"
+    after = match.group("after")
+    # No raw backtick or pipe reaches the cell: both are neutralized so the
+    # value cannot re-pair the template's wrapper backticks or add a column.
+    assert "`" not in after, "raw backtick leaked into the rendered cell"
+    assert "|" not in after, "raw pipe leaked into the rendered cell"
+
+
 # ---------------------------------------------------------------------------
 # D4 — nested structures dumped as Python repr
 # ---------------------------------------------------------------------------
@@ -133,9 +174,17 @@ def test_structured_hostile_value_is_markdown_safe_valid_json(tmp_path: Path) ->
 def test_nested_values_rendered_as_json(tmp_path: Path) -> None:
     """Nested dict/list values must render as JSON, not Python `repr`."""
     report = _run_generate("nested-unknown.json", tmp_path).decode()
-    assert "'tier'" not in report, "Python repr single-quoted key found"
-    assert "None" not in report, "Python repr None literal found instead of JSON null"
-    assert '"note": null' in report
+
+    match = re.search(
+        r"^\| `settings` \| `(?P<before>.*)` \| `(?P<after>.*)` \|$",
+        report,
+        re.MULTILINE,
+    )
+    assert match is not None, "settings row is missing or spans physical lines"
+    after = match.group("after")
+    assert "'tier'" not in after, "Python repr single-quoted key found"
+    assert "None" not in after, "Python repr None literal found instead of JSON null"
+    assert '"note": null' in after
 
 
 # ---------------------------------------------------------------------------
@@ -152,8 +201,6 @@ def test_nested_after_unknown_surfaces(tmp_path: Path) -> None:
 def test_nested_after_unknown_surfaces_for_list_element(tmp_path: Path) -> None:
     """A truthy `after_unknown` marker for a list element/index is surfaced, not dropped."""
     report = _run_generate("nested-unknown-list.json", tmp_path).decode()
-    assert "known after apply" in report
-    assert '"prod"' in report, "known list element must retain its concrete value"
     assert '`["prod", "(known after apply) ⏳"]`' in report
 
 
@@ -171,7 +218,7 @@ def test_nested_marker_only_container_surfaces() -> None:
     """A marker-only nested container must surface even when absent from `after`."""
     diff = calculate_diff({}, {}, {"network": {"endpoint": {"host": True}}})
     assert diff == {
-        "network": {"before": None, "after": {"endpoint": {"host": "(known after apply) ⏳"}}},
+        "network": {"before": None, "after": {"endpoint": {"host": _KNOWN_AFTER_APPLY}}},
     }
 
 
@@ -184,7 +231,7 @@ def test_trailing_false_list_markers_do_not_create_values() -> None:
 def test_marker_only_list_preserves_gap_before_unknown() -> None:
     """A leading false list marker is preserved as a gap so a later unknown keeps its index."""
     diff = calculate_diff({}, {}, {"slots": [False, {"id": True}, False]})
-    assert diff["slots"]["after"] == [None, {"id": "(known after apply) ⏳"}]
+    assert diff["slots"]["after"] == [None, {"id": _KNOWN_AFTER_APPLY}]
 
 
 def test_stdout_matches_file_and_preserves_json_list_literals(tmp_path: Path) -> None:

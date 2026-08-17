@@ -1,20 +1,7 @@
-{% if critical_resources_by_action %}
-# 🚨 Critical Changes
-
-{% for action in action_order %}
-{% if action in critical_resources_by_action %}
-### {{ get_emoji(action) }} {{ action | capitalize }}
-
-{% for rtype, resources in critical_resources_by_action[action].items() %}
-#### `{{ rtype }}`
-
-{% for res in resources %}
-<details>
-<summary><b>🚨 {{ res.short_address }}</b></summary>
-
-*`{{ res.address }}`*
-
-{% if res.diff %}
+{% macro details_table(res, action) %}
+{% if res.is_summarized %}
+> ℹ️ *Details hidden by configuration (filtered resource).*
+{% elif res.diff %}
 {% if action == 'create' %}
 | Property | Value |
 | :--- | :--- |
@@ -37,6 +24,24 @@
 {% else %}
 *No attribute changes detected (tag or metadata change).*
 {% endif %}
+{% endmacro %}
+{% if critical_resources_by_action %}
+# 🚨 Critical Changes
+
+{% for action in action_order %}
+{% if action in critical_resources_by_action %}
+### {{ get_emoji(action) }} {{ action | capitalize }}
+
+{% for rtype, resources in critical_resources_by_action[action].items() %}
+#### `{{ rtype }}`
+
+{% for res in resources %}
+<details>
+<summary><b>🚨 {{ res.short_address }}</b></summary>
+
+*`{{ res.address }}`*
+
+{{ details_table(res, action) }}
 
 </details>
 {% endfor %}
@@ -117,31 +122,7 @@
 
 *`{{ res.address }}`*
 
-{% if res.is_summarized %}
-> ℹ️ *Details hidden by configuration (filtered resource).*
-{% elif res.diff %}
-{% if action == 'create' %}
-| Property | Value |
-| :--- | :--- |
-{% for attr, val in res.diff.items() %}
-| `{{ attr }}` | `{{ val.after }}` |
-{% endfor %}
-{% elif action == 'delete' %}
-| Property | Value |
-| :--- | :--- |
-{% for attr, val in res.diff.items() %}
-| `{{ attr }}` | `{{ val.before }}` |
-{% endfor %}
-{% else %}
-| Property | Before | After |
-| :--- | :--- | :--- |
-{% for attr, val in res.diff.items() %}
-| `{{ attr }}` | `{{ val.before }}` | `{{ val.after }}` |
-{% endfor %}
-{% endif %}
-{% else %}
-*No attribute changes detected (tag or metadata change).*
-{% endif %}
+{{ details_table(res, action) }}
 
 </details>
 {% endfor %}
