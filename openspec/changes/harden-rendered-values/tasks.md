@@ -32,3 +32,14 @@
 - [x] 5.6 Prove byte-identical stdout/file reports and consolidate the duplicated fixture CLI helper.
 - [x] 5.7 Remove vestigial sentinel formatting and resolver aliases.
 - [x] 5.8 Update current documentation to describe literal Typer stdout output and the removed Rich dependency.
+
+## 6. Adversarial review remediation
+
+- [x] 6.1 Keep the absence sentinel out of resolved lists so a null element under a container marker cannot abort the report.
+- [x] 6.2 Retain a concrete nested `null` when its container marker carries no unknown leaf, instead of deleting the position.
+- [x] 6.3 Pin `encoding="utf-8"` and `newline="\n"` on the `--output` write, and prove byte parity with stdout under an ASCII locale.
+- [x] 6.4 Restore the truthy sensitivity predicate so an unexpected marker shape fails closed.
+- [x] 6.5 Preserve the concrete value's key order and append only marker-only keys, so both cells of a row stay comparable.
+- [x] 6.6 Reconcile `design.md` and the spec delta with the shipped scalar quoting, pipe and backtick escaping, and output-parity rules.
+- [x] 6.7 Type the resolver family with `_Missing`/`_Resolved` so a checker, not a runtime guard, keeps absence out of the formatter.
+- [x] 6.8 Document the resolve/mask/format pipeline stages in `docs/architecture/01` and `docs/architecture/03`.
