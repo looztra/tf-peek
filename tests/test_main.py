@@ -96,6 +96,32 @@ def test_calculate_diff_known_after_apply() -> None:
     assert diff["id"] == {"before": None, "after": "(known after apply) ⏳"}
 
 
+def test_calculate_diff_masks_flat_sensitive() -> None:
+    """A flat bool sensitivity marker masks the attribute's value on both sides."""
+    before = {"password": "hunter2"}
+    after = {"password": "s3cr3t!"}
+    diff = calculate_diff(before, after, None, {"password": True}, {"password": True})
+    assert diff["password"] == {"before": "(sensitive value)", "after": "(sensitive value)"}
+
+
+def test_calculate_diff_masks_nested_sensitive() -> None:
+    """A truthy marker anywhere in a nested subtree masks the whole top-level attribute."""
+    before = {"settings": {"tier": "small", "credentials": {"password": "hunter2"}}}
+    after = {"settings": {"tier": "large", "credentials": {"password": "hunter2"}}}
+    before_sensitive = {"settings": {"tier": False, "credentials": {"password": True}}}
+    after_sensitive = {"settings": {"tier": False, "credentials": {"password": True}}}
+    diff = calculate_diff(before, after, None, before_sensitive, after_sensitive)
+    assert diff["settings"] == {"before": "(sensitive value)", "after": "(sensitive value)"}
+
+
+def test_calculate_diff_masks_one_sided_sensitive() -> None:
+    """Sensitivity flagged on only one side still masks both before and after."""
+    before = {"token": "was-plaintext"}
+    after = {"token": "now-secret"}
+    diff = calculate_diff(before, after, None, {"token": False}, {"token": True})
+    assert diff["token"] == {"before": "(sensitive value)", "after": "(sensitive value)"}
+
+
 # ---------------------------------------------------------------------------
 # Integration: tiered summary counts
 # ---------------------------------------------------------------------------

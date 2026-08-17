@@ -22,11 +22,12 @@ tf-peek generate [OPTIONS] JSON_PATH
 
 ## Options
 
-| Option          | Short | Type | Default            | Description                                              |
-| :-------------- | :---: | :--- | :----------------- | :------------------------------------------------------- |
-| `--config PATH` | `-c`  | Path | `peek_config.toml` | Path to a TOML configuration file                        |
-| `--output PATH` | `-o`  | Path | —                  | Write the Markdown report to this file instead of stdout |
-| `--help`        |       |      |                    | Show help message and exit                               |
+| Option             | Short | Type | Default            | Description                                                |
+| :----------------- | :---: | :--- | :----------------- | :----------------------------------------------------------- |
+| `--config PATH`    | `-c`  | Path | `peek_config.toml` | Path to a TOML configuration file                           |
+| `--output PATH`    | `-o`  | Path | —                  | Write the Markdown report to this file instead of stdout    |
+| `--show-sensitive` |       | Flag | `False`            | Render sensitive attribute values instead of masking them   |
+| `--help`           |       |      |                    | Show help message and exit                                  |
 
 ### `--config / -c`
 
@@ -48,6 +49,16 @@ Report written to <path>
 ```
 
 If `--output` is omitted, the report is printed to stdout via `rich`.
+
+### `--show-sensitive`
+
+By default, `tf-peek` masks any attribute Terraform marks sensitive — replacing its before and
+after values with the placeholder `(sensitive value)` in the rendered report. Pass
+`--show-sensitive` to disable masking and render the underlying values instead.
+
+Masking is on by default because the report's primary destination is a durable, indexed,
+notification-emailed GitHub PR comment. Only pass `--show-sensitive` when that visibility is
+acceptable for the run.
 
 ---
 

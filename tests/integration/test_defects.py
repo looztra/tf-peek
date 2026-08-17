@@ -19,7 +19,7 @@ from tf_peek.main import app, calculate_diff
 _FIXTURES = Path(__file__).parent / "fixtures"
 
 
-def _run_generate(fixture_name: str, tmp_path: Path) -> str:
+def _run_generate(fixture_name: str, tmp_path: Path, extra_args: list[str] | None = None) -> str:
     """Render a fixture plan through the CLI and return the rendered Markdown."""
     config_file = tmp_path / "peek_config.toml"
     config_file.write_text("")
@@ -33,6 +33,7 @@ def _run_generate(fixture_name: str, tmp_path: Path) -> str:
             str(config_file),
             "--output",
             str(output_file),
+            *(extra_args or []),
         ],
     )
     assert result.exit_code == 0, result.output
@@ -44,12 +45,35 @@ def _run_generate(fixture_name: str, tmp_path: Path) -> str:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="D1: sensitive values are leaked in plaintext")
 def test_sensitive_values_not_leaked(tmp_path: Path) -> None:
     """No sensitive value should ever appear in the rendered report."""
     report = _run_generate("sensitive.json", tmp_path)
     assert "hunter2" not in report
     assert "s3cr3t!" not in report
+
+
+def test_nested_sensitivity_masks_entire_attribute(tmp_path: Path) -> None:
+    """A sensitivity marker nested inside a block masks the whole top-level attribute."""
+    report = _run_generate("nested-sensitive.json", tmp_path)
+    assert "hunter2" not in report
+    assert "db-f1-micro" not in report
+    assert "db-n1-standard-1" not in report
+    assert "(sensitive value)" in report
+
+
+def test_one_sided_sensitivity_masks_both_values(tmp_path: Path) -> None:
+    """An attribute sensitive on only one side still masks both before and after."""
+    report = _run_generate("one-sided-sensitive.json", tmp_path)
+    assert "was-plaintext" not in report
+    assert "now-secret" not in report
+    assert "(sensitive value)" in report
+
+
+def test_show_sensitive_flag_renders_underlying_values(tmp_path: Path) -> None:
+    """--show-sensitive opts out of masking and renders underlying values."""
+    report = _run_generate("sensitive.json", tmp_path, ["--show-sensitive"])
+    assert "hunter2" in report
+    assert "s3cr3t!" in report
 
 
 # ---------------------------------------------------------------------------

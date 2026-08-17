@@ -12,6 +12,8 @@ class Change(BaseModel):
     before: dict[str, Any] | None = None
     after: dict[str, Any] | None = None
     after_unknown: dict[str, Any] | None = None
+    before_sensitive: bool | dict[str, Any] | list[Any] | None = None
+    after_sensitive: bool | dict[str, Any] | list[Any] | None = None
 
 
 class ResourceChange(BaseModel):

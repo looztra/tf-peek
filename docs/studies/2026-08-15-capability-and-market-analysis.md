@@ -360,7 +360,7 @@ Nothing ships until these land. D1 and D2 in particular invalidate the PR-commen
 | # | Action | Addresses | Status |
 | :--- | :--- | :--- | :--- |
 | 0.0 | **Make `integration-tests` real.** Commit a fixture plan exercising sensitive values, nested blocks, pipes/newlines, nested unknowns, `replace_paths`, modules and outputs; assert against a golden `.md`. CI already calls the target — it just runs `echo "No op for now"`. Do this **first**: it is the harness that proves 0.1–0.5, and its absence is why all five defects reached v1.0 | §4.3 | ✅ Done — `archive/2026-08-16-integration-test-harness` |
-| 0.1 | Parse `before_sensitive` / `after_sensitive`; mask as `(sensitive value)`; add `--show-sensitive` opt-out | **D1** | 🚧 In progress — `changes/mask-sensitive-values` |
+| 0.1 | Parse `before_sensitive` / `after_sensitive`; mask as `(sensitive value)`; add `--show-sensitive` opt-out | **D1** | ✅ Done — `changes/mask-sensitive-values` |
 | 0.2 | `sorted()` diff keys and every other dict iteration; assert byte-identical output across repeated runs under `PYTHONHASHSEED=random` | **D2** | ⬜ Not started |
 | 0.3 | Escape `\|` and collapse newlines in table cells; truncate long values with a configurable `--max-value-width` | **D3** | ⬜ Not started |
 | 0.4 | Render values as JSON, not Python `repr` | **D4a** | ⬜ Not started |
