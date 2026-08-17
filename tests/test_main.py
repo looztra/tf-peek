@@ -122,6 +122,18 @@ def test_calculate_diff_masks_one_sided_sensitive() -> None:
     assert diff["token"] == {"before": _SENSITIVE_VALUE, "after": _SENSITIVE_VALUE}
 
 
+def test_calculate_diff_masks_non_boolean_truthy_sensitive() -> None:
+    """An unexpected but truthy marker shape fails closed and still masks the value.
+
+    Terraform emits booleans today; narrowing the predicate to `is True` would
+    render the value in plaintext the moment it emits anything else.
+    """
+    before = {"token": "was-plaintext"}
+    after = {"token": "now-secret"}
+    diff = calculate_diff(before, after, None, None, {"token": {"nested": 1}})
+    assert diff["token"] == {"before": _SENSITIVE_VALUE, "after": _SENSITIVE_VALUE}
+
+
 # ---------------------------------------------------------------------------
 # Integration: tiered summary counts
 # ---------------------------------------------------------------------------

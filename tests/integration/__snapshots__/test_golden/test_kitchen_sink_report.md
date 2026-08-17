@@ -37,7 +37,7 @@
 | Property | Before | After |
 | :--- | :--- | :--- |
 | `password` | `(sensitive value)` | `(sensitive value)` |
-| `settings` | `[{"tier": "db-f1-micro", "flags": [{"name": "max_connections", "value": "100"}]}]` | `[{"flags": "(known after apply) ⏳", "ip_address": "(known after apply) ⏳", "tier": "db-n1-standard-1"}]` |
+| `settings` | `[{"tier": "db-f1-micro", "flags": [{"name": "max_connections", "value": "100"}]}]` | `[{"tier": "db-n1-standard-1", "flags": "(known after apply) ⏳", "ip_address": "(known after apply) ⏳"}]` |
 
 
 </details>

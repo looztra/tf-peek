@@ -10,37 +10,24 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Literal
 
+import pytest
 from typer.testing import CliRunner
 
-from tf_peek.main import _KNOWN_AFTER_APPLY, app, calculate_diff
+from tf_peek.main import _KNOWN_AFTER_APPLY, _format_report_value, app, calculate_diff
 
 _FIXTURES = Path(__file__).parent / "fixtures"
 
 
-def _run_generate(
-    fixture_name: str,
-    tmp_path: Path,
-    extra_args: list[str] | None = None,
-    *,
-    destination: Literal["file", "stdout"] = "file",
-) -> bytes:
-    """Render a fixture plan through the CLI and return the raw report bytes.
-
-    `destination="file"` (the default) drives the `--output` file path and returns
-    its bytes; `destination="stdout"` omits `--output` and returns the CLI's
-    captured stdout bytes instead, so both destinations can be compared for parity.
-    """
+def _run_generate(fixture_name: str, tmp_path: Path, extra_args: list[str] | None = None) -> bytes:
+    """Render a fixture plan through the CLI's `--output` path and return its bytes."""
     config_file = tmp_path / "peek_config.toml"
     config_file.write_text("")
     output_file = tmp_path / "report.md"
-    args = [str(_FIXTURES / fixture_name), "--config", str(config_file)]
-    if destination == "file":
-        args += ["--output", str(output_file)]
+    args = [str(_FIXTURES / fixture_name), "--config", str(config_file), "--output", str(output_file)]
     result = CliRunner().invoke(app, [*args, *(extra_args or [])])
     assert result.exit_code == 0, result.output
-    return output_file.read_bytes() if destination == "file" else result.stdout_bytes
+    return output_file.read_bytes()
 
 
 def _count_table_columns(row: str) -> int:
@@ -166,6 +153,25 @@ def test_backticks_in_value_do_not_close_code_span(tmp_path: Path) -> None:
     assert "|" not in after, "raw pipe leaked into the rendered cell"
 
 
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        pytest.param("", '""', id="empty-string"),
+        pytest.param("false", '"false"', id="string-false"),
+        pytest.param(False, "false", id="boolean-false"),
+        pytest.param(None, "null", id="null"),
+        pytest.param(0, "0", id="zero"),
+    ],
+)
+def test_scalars_render_as_distinguishable_json_literals(value: str | bool | int | None, expected: str) -> None:
+    """An empty string stays visible and a string `false` stays distinct from a boolean.
+
+    The template previously routed falsy values through a `default('null')` filter,
+    which rendered an empty string, a zero and a `false` identically.
+    """
+    assert _format_report_value(value) == expected
+
+
 # ---------------------------------------------------------------------------
 # D4 — nested structures dumped as Python repr
 # ---------------------------------------------------------------------------
@@ -204,13 +210,16 @@ def test_nested_after_unknown_surfaces_for_list_element(tmp_path: Path) -> None:
     assert '`["prod", "(known after apply) ⏳"]`' in report
 
 
-def test_mismatched_unknown_marker_retains_concrete_value() -> None:
+@pytest.mark.parametrize(
+    "marker",
+    [
+        pytest.param({"nested": True}, id="dict-marker"),
+        pytest.param([True], id="list-marker"),
+    ],
+)
+def test_mismatched_unknown_marker_retains_concrete_value(marker: object) -> None:
     """A malformed container marker cannot replace a concrete scalar value."""
-    diff = calculate_diff(
-        {"config": "old-value"},
-        {"config": "raw-string"},
-        {"config": {"nested": True}},
-    )
+    diff = calculate_diff({"config": "old-value"}, {"config": "raw-string"}, {"config": marker})
     assert diff["config"] == {"before": "old-value", "after": "raw-string"}
 
 
@@ -234,12 +243,81 @@ def test_marker_only_list_preserves_gap_before_unknown() -> None:
     assert diff["slots"]["after"] == [None, {"id": _KNOWN_AFTER_APPLY}]
 
 
-def test_stdout_matches_file_and_preserves_json_list_literals(tmp_path: Path) -> None:
-    """Stdout and `--output` render byte-identical Markdown; JSON list literals survive."""
-    file_report = _run_generate("stdout-json-list.json", tmp_path, destination="file")
-    stdout_report = _run_generate("stdout-json-list.json", tmp_path, destination="stdout")
-    assert stdout_report == file_report
-    assert b"[true, false, null]" in stdout_report
+def test_marker_beyond_the_concrete_list_appends_unknown_elements() -> None:
+    """A marker index past the end of the concrete list adds that unknown element."""
+    diff = calculate_diff({"tags": ["prod"]}, {"tags": ["prod"]}, {"tags": [False, True]})
+    assert diff["tags"]["after"] == ["prod", _KNOWN_AFTER_APPLY]
+
+
+@pytest.mark.parametrize(
+    ("attr", "after", "unknown", "expected"),
+    [
+        pytest.param(
+            "settings",
+            {"tier": "b", "flags": None},
+            {"tier": False, "flags": []},
+            {"tier": "b", "flags": None},
+            id="dict-key-null",
+        ),
+        pytest.param("disks", [None], [{"auto_delete": False}], [None], id="list-element-null"),
+    ],
+)
+def test_container_marker_against_null_retains_the_null(
+    attr: str, after: object, unknown: object, expected: object
+) -> None:
+    """A container marker carrying no unknown leaf must keep an explicit null.
+
+    Dropping the position lost the fact that the plan nulls that attribute; in the
+    list case the internal absence sentinel also reached `json.dumps` and aborted
+    the whole report with an unhandled `TypeError`.
+    """
+    diff = calculate_diff({attr: "before"}, {attr: after}, {attr: unknown})
+    assert diff[attr]["after"] == expected
+    assert _format_report_value(diff[attr]["after"]) == json.dumps(expected)
+
+
+def test_concrete_key_order_is_preserved_and_marker_only_keys_appended() -> None:
+    """Resolution keeps the plan's key order so both cells of a row stay comparable.
+
+    Only marker-only keys — which have no concrete counterpart to be ordered
+    against — are appended, in sorted order, keeping the output deterministic. A
+    marker-only key whose subtree holds no unknown leaf is not invented at all.
+    """
+    before = {"settings": {"zeta": 1, "alpha": 2}}
+    after = {"settings": {"zeta": 9, "alpha": 2}}
+    unknown = {"settings": {"zeta": False, "omega": True, "beta": True, "gamma": False}}
+
+    diff = calculate_diff(before, after, unknown)
+
+    assert _format_report_value(diff["settings"]["before"]) == '{"zeta": 1, "alpha": 2}'
+    assert _format_report_value(diff["settings"]["after"]) == (
+        '{"zeta": 9, "alpha": 2, "beta": "(known after apply) ⏳", "omega": "(known after apply) ⏳"}'
+    )
+
+
+def test_stdout_and_file_are_byte_identical_under_an_ascii_locale(tmp_path: Path) -> None:
+    """Both destinations emit the same bytes even when the ambient locale is ASCII.
+
+    An in-process runner cannot observe this: click pins UTF-8 on stdout while
+    `Path.write_text` follows the ambient locale, so the two encoders agree only
+    when the file path pins UTF-8 as well. The report is emoji-dense, so an
+    unpinned file write aborts here rather than diverging silently.
+    """
+    plan_file = _FIXTURES / "stdout-json-list.json"
+    config_file = tmp_path / "peek_config.toml"
+    config_file.write_text("")
+    output_file = tmp_path / "report.md"
+    # Drop any inherited PYTHONIOENCODING rather than popping it afterwards, which
+    # would widen the mapping's value type past what `subprocess.run` accepts.
+    env = {key: value for key, value in os.environ.items() if key != "PYTHONIOENCODING"}
+    env |= {"LC_ALL": "C", "LANG": "C", "PYTHONUTF8": "0", "PYTHONCOERCECLOCALE": "0"}
+    command = [sys.executable, "-m", "tf_peek.main", str(plan_file), "--config", str(config_file)]
+
+    to_stdout = subprocess.run(command, env=env, capture_output=True, check=True)  # noqa: S603
+    subprocess.run([*command, "--output", str(output_file)], env=env, capture_output=True, check=True)  # noqa: S603
+
+    assert output_file.read_bytes() == to_stdout.stdout
+    assert b"[true, false, null]" in to_stdout.stdout
 
 
 # ---------------------------------------------------------------------------
