@@ -57,7 +57,7 @@ def calculate_diff(
 
     all_keys = set(before.keys()) | set(after.keys()) | set(unknown.keys())
 
-    for k in all_keys:
+    for k in sorted(all_keys):
         val_before = before.get(k)
         val_after = after.get(k)
 

@@ -1,9 +1,8 @@
-"""Defect ledger for the six issues catalogued in `docs/studies/2026-08-15-capability-and-market-analysis.md §4.1`.
+"""Defect ledger for issues catalogued in the capability study.
 
-Each assertion below is `@pytest.mark.xfail(strict=True, ...)`: it currently fails for
-exactly the stated reason, and `strict=True` turns an unexpected pass (a fix landing
-without the marker being removed) into a CI failure. This makes the ledger executable
-and self-maintaining rather than a comment that can silently rot.
+Unresolved assertions are `@pytest.mark.xfail(strict=True, ...)`: each currently
+fails for exactly the stated reason, and `strict=True` turns an unexpected pass
+into a CI failure. Resolved defects remain required passing regressions.
 """
 
 import os
@@ -132,7 +131,6 @@ def test_nested_after_unknown_surfaces(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="D2: report output is not reproducible across runs")
 def test_determinism_across_hash_seeds(tmp_path: Path) -> None:
     """Assert byte-identical output across fresh interpreters.
 
@@ -164,7 +162,6 @@ def test_determinism_across_hash_seeds(tmp_path: Path) -> None:
     assert len(outputs) == 1, "report output differs across PYTHONHASHSEED values"
 
 
-@pytest.mark.xfail(strict=True, reason="D2: calculate_diff iterates an unsorted set, so key order is unstable")
 def test_calculate_diff_returns_sorted_keys() -> None:
     """Fast in-process companion to the subprocess determinism test.
 

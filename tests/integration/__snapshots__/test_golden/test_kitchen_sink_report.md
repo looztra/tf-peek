@@ -36,8 +36,8 @@
 
 | Property | Before | After |
 | :--- | :--- | :--- |
-| `settings` | `[{'tier': 'db-f1-micro', 'flags': [{'name': 'max_connections', 'value': '100'}]}]` | `[{'tier': 'db-n1-standard-1', 'flags': [{'name': 'max_connections', 'value': '100'}]}]` |
 | `password` | `(sensitive value)` | `(sensitive value)` |
+| `settings` | `[{'tier': 'db-f1-micro', 'flags': [{'name': 'max_connections', 'value': '100'}]}]` | `[{'tier': 'db-n1-standard-1', 'flags': [{'name': 'max_connections', 'value': '100'}]}]` |
 
 </details>
 
