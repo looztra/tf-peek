@@ -4,9 +4,18 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
 from typer.testing import CliRunner
 
-from tf_peek.main import _KNOWN_AFTER_APPLY, _SENSITIVE_VALUE, app, calculate_diff, get_emoji
+from tf_peek.main import (
+    _KNOWN_AFTER_APPLY,
+    _SENSITIVE_VALUE,
+    _DisplaySentinel,
+    _json_default,
+    app,
+    calculate_diff,
+    get_emoji,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -146,6 +155,25 @@ def test_calculate_diff_masks_non_boolean_truthy_sensitive() -> None:
     assert diff["token"] == {"before": _SENSITIVE_VALUE, "after": _SENSITIVE_VALUE}
 
 
+def test_calculate_diff_unresolvable_after_unknown_marker_leaves_value_unchanged() -> None:
+    """A marker shape that isn't ``true``/``false``/``None``/dict/list is ignored, not applied."""
+    diff = calculate_diff({"attr": "old"}, {"attr": "new"}, {"attr": "not-a-real-marker"})
+    assert diff["attr"] == {"before": "old", "after": "new"}
+
+
+def test_display_sentinel_hash_and_repr() -> None:
+    """``_DisplaySentinel`` is hashable and reprs with its text for debugging."""
+    sentinel = _DisplaySentinel("(known after apply) ⏳")
+    assert hash(sentinel) == hash(("_DisplaySentinel", "(known after apply) ⏳"))
+    assert repr(sentinel) == "_DisplaySentinel('(known after apply) ⏳')"
+
+
+def test_json_default_rejects_non_sentinel_objects() -> None:
+    """``_json_default`` only knows how to serialize ``_DisplaySentinel``; anything else raises."""
+    with pytest.raises(TypeError, match="not JSON serializable: object"):
+        _json_default(object())
+
+
 # ---------------------------------------------------------------------------
 # Integration: tiered summary counts
 # ---------------------------------------------------------------------------
@@ -192,6 +220,56 @@ def test_tiered_summary_zero_cells_empty(tmp_path: Path) -> None:
     # The critical cell should not contain a number
     create_row = lines[0]
     assert "| 1 |" not in create_row or "🔇" not in create_row  # sanity
+
+
+def test_no_op_and_read_actions_are_skipped(tmp_path: Path) -> None:
+    """Resources whose only action is 'no-op' or 'read' never reach the report."""
+    plan = _make_plan(
+        [
+            _rc_entry("google_storage_bucket", "unchanged", ["no-op"], before={"name": "b"}, after={"name": "b"}),
+            _rc_entry("google_storage_bucket", "readonly", ["read"], after={"name": "b2"}),
+            _rc_entry("google_storage_bucket", "created", ["create"], after={"name": "b3"}),
+        ]
+    )
+    report = _run_generate(plan, "", tmp_path)
+    assert "unchanged" not in report
+    assert "readonly" not in report
+    assert "created" in report
+
+
+def test_generate_warns_when_overwriting_existing_output_file(tmp_path: Path) -> None:
+    """Running generate twice against the same --output path prints an overwrite notice."""
+    plan = _make_plan([_rc_entry("google_storage_bucket", "b1", ["create"], after={"name": "b1"})])
+    config_content = ""
+
+    plan_file = tmp_path / "plan.json"
+    plan_file.write_text(json.dumps(plan))
+    config_file = tmp_path / "peek_config.toml"
+    config_file.write_text(config_content)
+    output_file = tmp_path / "report.md"
+
+    runner = CliRunner()
+    args = [str(plan_file), "--config", str(config_file), "--output", str(output_file)]
+    first = runner.invoke(app, args)
+    assert first.exit_code == 0, first.output
+
+    second = runner.invoke(app, args)
+    assert second.exit_code == 0, second.output
+    assert f"Overwriting {output_file}" in second.output
+
+
+def test_generate_without_output_writes_report_to_stdout(tmp_path: Path) -> None:
+    """Omitting --output prints the rendered report to stdout instead of a file."""
+    plan = _make_plan([_rc_entry("google_storage_bucket", "b1", ["create"], after={"name": "b1"})])
+    plan_file = tmp_path / "plan.json"
+    plan_file.write_text(json.dumps(plan))
+    config_file = tmp_path / "peek_config.toml"
+    config_file.write_text("")
+
+    runner = CliRunner()
+    result = runner.invoke(app, [str(plan_file), "--config", str(config_file)])
+    assert result.exit_code == 0, result.output
+    assert "google_storage_bucket.b1" in result.output
 
 
 # ---------------------------------------------------------------------------
