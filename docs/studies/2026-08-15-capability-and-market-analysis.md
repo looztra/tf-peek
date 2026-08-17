@@ -362,9 +362,9 @@ Nothing ships until these land. D1 and D2 in particular invalidate the PR-commen
 | 0.0 | **Make `integration-tests` real.** Commit a fixture plan exercising sensitive values, nested blocks, pipes/newlines, nested unknowns, `replace_paths`, modules and outputs; assert against a golden `.md`. CI already calls the target — it just runs `echo "No op for now"`. Do this **first**: it is the harness that proves 0.1–0.5, and its absence is why all five defects reached v1.0 | §4.3 | ✅ Done — `archive/2026-08-16-integration-test-harness` |
 | 0.1 | Parse `before_sensitive` / `after_sensitive`; mask as `(sensitive value)`; add `--show-sensitive` opt-out | **D1** | ✅ Done — `changes/mask-sensitive-values` |
 | 0.2 | Sort the diff-key union before iteration (the only hash-order-dependent traversal in the report path); assert byte-identical output across repeated runs under differing `PYTHONHASHSEED` values | **D2** | ✅ Done — `changes/deterministic-report-output` |
-| 0.3 | Escape `\|` and collapse newlines in table cells; truncate long values with a configurable `--max-value-width` | **D3** | ⬜ Not started |
-| 0.4 | Render values as JSON, not Python `repr` | **D4a** | ⬜ Not started |
-| 0.5 | Recurse `after_unknown` for nested dict/list unknowns | **D5** | ⬜ Not started |
+| 0.3 | Escape `\|` and collapse newlines in table cells; truncate long values with a configurable `--max-value-width` | **D3** | ✅ Done (escaping/collapsing) — `changes/harden-rendered-values`; `--max-value-width` truncation deliberately deferred (non-goal, see the change's `design.md`) |
+| 0.4 | Render values as JSON, not Python `repr` | **D4a** | ✅ Done — `changes/harden-rendered-values` |
+| 0.5 | Recurse `after_unknown` for nested dict/list unknowns | **D5** | ✅ Done — `changes/harden-rendered-values` |
 | 0.6 | Decide the CLI shape — either `app.add_typer`/second command to keep `generate`, or drop `generate` from all docs. **Fix the tutorial first.** | **D6** | ⬜ Not started |
 | 0.7 | Replace `rich.print` with `typer.echo` for report output; gate `rich` behind `--pretty` | **M4** | ⬜ Not started |
 | 0.8 | Add `--version` | **M8** | ⬜ Not started |
