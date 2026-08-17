@@ -53,6 +53,6 @@
 
 | Property | Before | After |
 | :--- | :--- | :--- |
-| `desc` | `old description` | `has ｜ pipe\nand a newline` |
+| `desc` | `old description` | `has \| pipe\nand a newline` |
 
 </details>

@@ -5,6 +5,7 @@ D6 (documented CLI invocation) is a separate, out-of-scope documentation defect.
 """
 
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -90,20 +91,19 @@ def test_sensitive_structured_value_with_control_characters_masked(tmp_path: Pat
 def test_hostile_strings_do_not_break_table(tmp_path: Path) -> None:
     """Assert the resource-details table survives a hostile value intact.
 
-    Every row must have a consistent column count and no cell may contain a raw
-    newline — both break Markdown table rendering, and a raw pipe additionally
-    adds a phantom column.
+    Every row must have a consistent count of unescaped column delimiters and no
+    cell may contain a raw newline — both break Markdown table rendering.
     """
     report = _run_generate("hostile-strings.json", tmp_path)
 
     # The unescaped value's embedded newline splits the row: this exact
     # substring only appears verbatim while the raw newline reaches the output.
     assert "has | pipe\nand a newline" not in report, "cell contains a raw newline"
+    assert "has \\| pipe\\nand a newline" in report, "pipe was not Markdown-escaped"
 
     detail_idx = report.find("🔍 Resource Details")
     table_rows = [line for line in report[detail_idx:].splitlines() if line.strip().startswith("|")]
-    assert table_rows, "no table rows found in resource details"
-    column_counts = {row.count("|") for row in table_rows}
+    column_counts = {len(re.findall(r"(?<!\\)\|", row)) for row in table_rows}
     assert len(column_counts) == 1, "table rows have inconsistent column counts"
 
 

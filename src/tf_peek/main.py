@@ -86,10 +86,8 @@ def _format_report_value(value: _JSONValue) -> str:
 
     Preserves the `(sensitive value)` and `(known after apply) ⏳` display sentinels,
     renders dicts and lists as compact JSON (using JSON literals rather than Python
-    `repr`), normalizes line endings into visible escaped notation, and substitutes
-    a non-colliding lookalike for literal `|` characters. A backslash escape would
-    remain a literal `|` byte inside the backtick-quoted table cell and still split
-    the row, so the pipe itself must not survive into the rendered cell.
+    `repr`), normalizes line endings into visible escaped notation, and escapes
+    literal `|` characters with the GFM table-cell backslash form.
     """
     if isinstance(value, str) and value in _DISPLAY_SENTINELS:
         text = value
@@ -100,7 +98,7 @@ def _format_report_value(value: _JSONValue) -> str:
     else:
         text = json.dumps(value, ensure_ascii=False)
     text = text.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "\\n")
-    return text.replace("|", "\uff5c")
+    return text.replace("|", r"\|")
 
 
 def calculate_diff(
