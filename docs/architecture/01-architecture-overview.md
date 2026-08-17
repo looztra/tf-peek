@@ -37,11 +37,19 @@ The `generate` command follows a linear pipeline:
    resources matching `config.summarize` are included but their attribute diff is hidden.
 4. **Classify actions** — each `ResourceChange` is mapped to a simplified action:
    `create`, `update`, `delete`, `replace`, or `no-op`. `no-op` and `read` resources are excluded.
-5. **Compute diffs** — for non-summarized resources, before/after attribute values are compared;
-   values marked `after_unknown` in the plan are rendered as `(known after apply)`.
-6. **Render template** — data is passed to a Jinja2 template that produces the final Markdown.
-7. **Output** — the completed Markdown is written directly to a file (if `--output` is specified)
-   or emitted literally to stdout via `typer.echo`.
+5. **Compute diffs** — for non-summarized resources, before/after attribute values are compared.
+   Terraform's `after_unknown` markers are resolved recursively into the `after` value, so a nested
+   unknown leaf becomes `(known after apply)` inside its containing structure instead of being lost.
+6. **Mask sensitive values** — an attribute whose `before_sensitive`/`after_sensitive` subtree has any
+   truthy leaf is replaced with `(sensitive value)` on both sides, unless `--show-sensitive` is passed.
+   Masking runs before any formatting so no serialization path can bypass it.
+7. **Format cells** — every remaining value passes through one canonical formatter that emits compact
+   JSON and escapes the Markdown table delimiter and the code-span backtick. The template receives
+   display strings only, so no branch of it can re-derive a value differently.
+8. **Render template** — data is passed to a Jinja2 template that produces the final Markdown.
+9. **Output** — the completed Markdown is written to a file (if `--output` is specified) or emitted
+   literally to stdout via `typer.echo`. Both destinations pin UTF-8 with LF endings, so their bytes
+   are identical regardless of the ambient locale.
 
 ## Key Dependencies
 
