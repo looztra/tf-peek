@@ -49,7 +49,15 @@ def calculate_diff(
     before_sensitive: bool | dict[str, Any] | list[Any] | None = None,
     after_sensitive: bool | dict[str, Any] | list[Any] | None = None,
 ) -> dict[str, dict[str, Any]]:
-    """Compare before/after and handle 'known after apply' values."""
+    """Compare before/after and handle 'known after apply' values.
+
+    Returns:
+        A dict of changed attributes keyed by attribute name, in ascending lexical
+        key order. The Jinja2 report template consumes this dict via `.items()`
+        and relies on that order for deterministic Markdown output — do not
+        replace the sorted traversal with a hash-ordered one (e.g. iterating a
+        `set` or unsorted `dict` union) without preserving the guarantee.
+    """
     diff = {}
     before = before or {}
     after = after or {}
@@ -57,7 +65,7 @@ def calculate_diff(
 
     all_keys = set(before.keys()) | set(after.keys()) | set(unknown.keys())
 
-    for k in all_keys:
+    for k in sorted(all_keys):
         val_before = before.get(k)
         val_after = after.get(k)
 
