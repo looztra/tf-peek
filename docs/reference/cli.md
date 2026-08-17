@@ -48,7 +48,7 @@ Overwriting <path>
 Report written to <path>
 ```
 
-If `--output` is omitted, the report is printed to stdout via `rich`.
+If `--output` is omitted, the completed Markdown report is emitted literally to stdout.
 
 ### `--show-sensitive`
 

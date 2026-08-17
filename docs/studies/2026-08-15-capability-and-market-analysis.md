@@ -228,10 +228,9 @@ Jinja2 indirection makes multi-format cheap; it just hasn't been exercised. Note
 `--output` writes only Markdown while `docs/reference/cli.md` documents exit code 1 for
 "configuration error" — unverified.
 
-**M4 — stdout is broken for piping.** `main.py:181` uses `rich.print`, which interprets `[...]` as
-markup. A Terraform address like `module.db["prod"]` contains `["prod"]` and will be mangled or
-swallowed. `rich` also wraps to terminal width. Use `typer.echo` / plain `print` for machine-bound
-output; reserve `rich` for an explicit `--pretty` terminal mode.
+**M4 — stdout is pipe-safe.** The completed Markdown report is emitted literally with
+`typer.echo`, so JSON brackets and other report content are not interpreted as console markup or
+wrapped. Stdout and `--output` are covered by byte-parity regression coverage.
 
 **M5 — No stdin.** Competitors support `terraform show -json | tool`. tf-peek requires a file path,
 forcing a temp file in every pipeline.
@@ -366,7 +365,7 @@ Nothing ships until these land. D1 and D2 in particular invalidate the PR-commen
 | 0.4 | Render values as JSON, not Python `repr` | **D4a** | ✅ Done — `changes/harden-rendered-values` |
 | 0.5 | Recurse `after_unknown` for nested dict/list unknowns | **D5** | ✅ Done — `changes/harden-rendered-values` |
 | 0.6 | Decide the CLI shape — either `app.add_typer`/second command to keep `generate`, or drop `generate` from all docs. **Fix the tutorial first.** | **D6** | ⬜ Not started |
-| 0.7 | Replace `rich.print` with `typer.echo` for report output; gate `rich` behind `--pretty` | **M4** | ⬜ Not started |
+| 0.7 | Replace `rich.print` with `typer.echo` for report output | **M4** | ✅ Done — literal `typer.echo` output and stdout/file parity coverage |
 | 0.8 | Add `--version` | **M8** | ⬜ Not started |
 | 0.9 | Fix `pyproject.toml` description (visible on PyPI); fix `AGENTS.md` `yamkix` references; correct `docs/architecture/01` config model | §4.3 | ⬜ Not started |
 

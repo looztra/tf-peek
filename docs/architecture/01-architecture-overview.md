@@ -40,15 +40,14 @@ The `generate` command follows a linear pipeline:
 5. **Compute diffs** — for non-summarized resources, before/after attribute values are compared;
    values marked `after_unknown` in the plan are rendered as `(known after apply)`.
 6. **Render template** — data is passed to a Jinja2 template that produces the final Markdown.
-7. **Output** — the rendered content is written to a file (if `--output` is specified) or printed
-   to stdout via `rich`.
+7. **Output** — the completed Markdown is written directly to a file (if `--output` is specified)
+   or emitted literally to stdout via `typer.echo`.
 
 ## Key Dependencies
 
-| Library    | Role                                                        |
-| :--------- | :---------------------------------------------------------- |
-| `typer`    | CLI argument parsing and command definition                 |
-| `pydantic` | Runtime validation and typing of Terraform plan JSON        |
-| `jinja2`   | Markdown report templating                                  |
-| `rich`     | Styled terminal output when writing to stdout               |
-| `tomllib`  | Standard library TOML parser for reading `peek_config.toml` |
+| Library    | Role                                                          |
+| :--------- | :------------------------------------------------------------ |
+| `typer`    | CLI argument parsing, command definition, and literal stdout emission |
+| `pydantic` | Runtime validation and typing of Terraform plan JSON          |
+| `jinja2`   | Markdown report templating                                    |
+| `tomllib`  | Standard library TOML parser for reading `peek_config.toml`   |

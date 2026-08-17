@@ -28,7 +28,7 @@ flowchart TD
     F --> G[Render Jinja2 template\nreport.md.j2]
     G --> H{output_file?}
     H -- yes --> I[(Write Markdown file)]
-    H -- no --> J[Print to stdout via rich]
+    H -- no --> J[Emit Markdown literally via typer.echo]
 ```
 
 ## Internal Module Dependencies
