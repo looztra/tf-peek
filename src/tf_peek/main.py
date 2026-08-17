@@ -21,8 +21,33 @@ def get_emoji(action: str) -> str:
     return mapping.get(action, "❓")
 
 
+def _is_sensitive(marker: bool | dict[str, Any] | list[Any] | None) -> bool:
+    """Return True if any leaf of a Terraform sensitivity marker is truthy."""
+    if isinstance(marker, dict):
+        return any(_is_sensitive(v) for v in marker.values())
+    if isinstance(marker, list):
+        return any(_is_sensitive(v) for v in marker)
+    return bool(marker)
+
+
+def _marker_for_key(
+    marker: bool | dict[str, Any] | list[Any] | None, key: str
+) -> bool | dict[str, Any] | list[Any] | None:
+    """Look up the sensitivity marker for a single top-level key.
+
+    Terraform emits per-attribute markers as a dict, but the whole `before_sensitive`/
+    `after_sensitive` value may instead be a bare `bool` (the whole object is sensitive) —
+    in that case every key inherits it rather than being looked up.
+    """
+    return marker.get(key) if isinstance(marker, dict) else marker
+
+
 def calculate_diff(
-    before: dict[str, Any] | None, after: dict[str, Any] | None, unknown: dict[str, Any] | None
+    before: dict[str, Any] | None,
+    after: dict[str, Any] | None,
+    unknown: dict[str, Any] | None,
+    before_sensitive: bool | dict[str, Any] | list[Any] | None = None,
+    after_sensitive: bool | dict[str, Any] | list[Any] | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Compare before/after and handle 'known after apply' values."""
     diff = {}
@@ -41,6 +66,11 @@ def calculate_diff(
             val_after = "(known after apply) ⏳"
 
         if val_before != val_after:
+            if _is_sensitive(_marker_for_key(before_sensitive, k)) or _is_sensitive(
+                _marker_for_key(after_sensitive, k)
+            ):
+                val_before = "(sensitive value)"
+                val_after = "(sensitive value)"
             diff[k] = {"before": val_before, "after": val_after}
     return diff
 
@@ -63,6 +93,9 @@ def generate(
     config_file: Path | None = typer.Option(None, "--config", "-c"),
     output_file: Path | None = typer.Option(
         None, "--output", "-o", help="Output file for markdown report (default: stdout)"
+    ),
+    show_sensitive: bool = typer.Option(
+        False, "--show-sensitive", help="Render sensitive attribute values instead of masking them"
     ),
 ) -> None:
     """Generate a markdown report from a terraform plan JSON."""
@@ -114,7 +147,15 @@ def generate(
 
         diff = {}
         if not is_summarized:
-            diff = calculate_diff(rc.change.before, rc.change.after, rc.change.after_unknown)
+            before_sensitive = None if show_sensitive else rc.change.before_sensitive
+            after_sensitive = None if show_sensitive else rc.change.after_sensitive
+            diff = calculate_diff(
+                rc.change.before,
+                rc.change.after,
+                rc.change.after_unknown,
+                before_sensitive,
+                after_sensitive,
+            )
 
         resource_entry: dict[str, Any] = {
             "address": rc.address,

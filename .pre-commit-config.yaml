@@ -61,7 +61,8 @@ repos:
         exclude: |
           (?x)^(
               test-assets/.*|
-              tests/data/.*
+              tests/data/.*|
+              openspec/.*
           )$
 
   - repo: local
