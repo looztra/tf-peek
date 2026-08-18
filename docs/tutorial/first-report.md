@@ -44,10 +44,10 @@ tf-peek --help
 You should see:
 
 ```text
-Usage: tf-peek [OPTIONS] COMMAND [ARGS]...
+Usage: tf-peek [OPTIONS] {json_path}
+
+Generate a markdown report from a terraform plan JSON.
 ...
-Commands:
-  generate  Generate a markdown report from a terraform plan JSON.
 ```
 
 ---
@@ -72,10 +72,10 @@ You now have a `plan.json` file that `tf-peek` can read.
 
 ## Step 3 — Generate your first report
 
-Run the `generate` command, passing `plan.json` as the argument:
+Run `tf-peek`, passing `plan.json` as the argument:
 
 ```bash
-tf-peek generate plan.json
+tf-peek plan.json
 ```
 
 `tf-peek` prints the Markdown report directly to your terminal. Notice the summary table at the top
@@ -91,7 +91,7 @@ what changes between the current state and the planned state.
 To save the report instead of printing it, use the `--output` option:
 
 ```bash
-tf-peek generate plan.json --output report.md
+tf-peek plan.json --output report.md
 ```
 
 You should see:

@@ -43,10 +43,10 @@ After installing, confirm that the binary is available:
 tf-peek --version
 ```
 
-And that the `generate` command is accessible:
+And that its help output is accessible:
 
 ```bash
-tf-peek generate --help
+tf-peek --help
 ```
 
 ---

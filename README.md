@@ -8,7 +8,7 @@ resource tiers to highlight critical operations and suppress routine noise.
 ```bash
 uv tool install tf-peek
 terraform plan -out=tfplan && terraform show -json tfplan > plan.json
-tf-peek generate plan.json
+tf-peek plan.json
 ```
 
 ## Documentation

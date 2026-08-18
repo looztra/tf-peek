@@ -8,9 +8,12 @@ output easier by producing a structured summary with per-resource diffs.
 
 ## Core Principles
 
-- **Single responsibility**: one command (`generate`) that performs one task — convert a plan to a report.
+- **Single responsibility**: a single command that performs one task — convert a plan to a report.
 - **Offline / local-only**: no network calls, no databases. All processing happens on local files.
-- **Declarative configuration**: a TOML file (`peek_config.toml`) controls filtering and summarization per repository.
+- **Declarative configuration**: a TOML file (`peek_config.toml`) assigns per-repository resource
+  tiers (`silent` / `normal` / `critical`) and, for `normal`, a detail level (`full` / `summary`).
+  See [`resource-tier-config`](https://github.com/looztra/tf-peek/blob/main/openspec/specs/resource-tier-config/spec.md)
+  for the rule format.
 - **Structured data ingestion**: the Terraform plan JSON is validated at parse time using Pydantic models.
 - **Separation of concerns**: parsing, business logic, configuration, and rendering are each
   in their own module.
@@ -29,17 +32,24 @@ src/tf_peek/
 
 ## Processing Pipeline
 
-The `generate` command follows a linear pipeline:
+`tf-peek` follows a linear pipeline:
 
 1. **Load configuration** — reads an optional `peek_config.toml` (or a path supplied via `--config`).
 2. **Parse plan** — deserializes the Terraform plan JSON into typed Pydantic models.
-3. **Filter resources** — resources whose type prefix matches `config.ignore` are skipped entirely;
-   resources matching `config.summarize` are included but their attribute diff is hidden.
-4. **Classify actions** — each `ResourceChange` is mapped to a simplified action:
+3. **Classify actions** — each `ResourceChange` is mapped to a simplified action:
    `create`, `update`, `delete`, `replace`, or `no-op`. `no-op` and `read` resources are excluded.
-5. **Compute diffs** — for non-summarized resources, before/after attribute values are compared.
-   Terraform's `after_unknown` markers are resolved recursively into the `after` value, so a nested
-   unknown leaf becomes `(known after apply)` inside its containing structure instead of being lost.
+4. **Classify tier** — each remaining resource is matched against the configured `[[resources]]`
+   rules (by exact `match_type` or regex `match_pattern`) and assigned a tier (`silent` / `normal`
+   / `critical`) and, for `normal`, a `detail` level (`full` / `summary`). A `critical` resource
+   whose action is in that rule's `critical_on` list is routed into the report's 🚨 Critical
+   Changes section instead of the normal resource list.
+5. **Compute / emit diffs** — `silent`-tier resources are only counted: they never reach the diff
+   pipeline and never appear in any rendered entry. `summary`-detail resources are rendered as a
+   title-only collapsible entry (no attribute table, no `(known after apply)` markers); only the
+   `calculate_diff` step is skipped. For everything else, before/after attribute values are
+   compared; Terraform's `after_unknown` markers are resolved recursively into the `after` value,
+   so a nested unknown leaf becomes `(known after apply)` inside its containing structure
+   instead of being lost.
 6. **Mask sensitive values** — an attribute whose `before_sensitive`/`after_sensitive` subtree has any
    truthy leaf is replaced with `(sensitive value)` on both sides, unless `--show-sensitive` is passed.
    Masking runs before any formatting so no serialization path can bypass it.

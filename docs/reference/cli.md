@@ -1,11 +1,11 @@
 # CLI Reference
 
-`tf-peek` exposes a single command: `generate`.
+`tf-peek` exposes a single top-level command — there is no subcommand name.
 
 ## Synopsis
 
 ```text
-tf-peek generate [OPTIONS] JSON_PATH
+tf-peek [OPTIONS] JSON_PATH
 ```
 
 ---
@@ -27,6 +27,7 @@ tf-peek generate [OPTIONS] JSON_PATH
 | `--config PATH`    | `-c`  | Path | `peek_config.toml` | Path to a TOML configuration file                           |
 | `--output PATH`    | `-o`  | Path | —                  | Write the Markdown report to this file instead of stdout    |
 | `--show-sensitive` |       | Flag | `False`            | Render sensitive attribute values instead of masking them   |
+| `--version`        | `-V`  | Flag | `False`            | Print the installed `tf-peek` version and exit               |
 | `--help`           |       |      |                    | Show help message and exit                                  |
 
 ### `--config / -c`
@@ -60,14 +61,26 @@ Masking is on by default because the report's primary destination is a durable, 
 notification-emailed GitHub PR comment. Only pass `--show-sensitive` when that visibility is
 acceptable for the run.
 
+### `--version / -V`
+
+Prints the installed `tf-peek` distribution version to stdout and exits `0`. This is an eager
+flag: it takes effect before `JSON_PATH` is validated, so `tf-peek --version` works without
+supplying a plan file.
+
+If the distribution's metadata is not discoverable (e.g. running from a source checkout outside
+an installed venv), `tf-peek --version` writes a one-line diagnostic to stderr and exits `1`
+instead of emitting a non-version string to stdout. A wrapper doing `VER=$(tf-peek --version)`
+observes the non-zero exit and an empty `VER` rather than capturing prose as a version.
+
 ---
 
 ## Exit codes
 
-| Code | Meaning                                                   |
-| ---: | :-------------------------------------------------------- |
-|    0 | Success                                                   |
-|    1 | Error (invalid JSON, file not found, configuration error) |
+| Code | Meaning                                                                                  |
+| ---: | :--------------------------------------------------------------------------------------- |
+|    0 | Success                                                                                  |
+|    1 | Runtime error (invalid JSON, file not found, configuration error, missing metadata)      |
+|    2 | Usage error (missing or unexpected arguments, unknown option, malformed positional input) |
 
 ---
 
@@ -76,19 +89,25 @@ acceptable for the run.
 Print report to terminal:
 
 ```bash
-tf-peek generate plan.json
+tf-peek plan.json
 ```
 
 Save report to a file:
 
 ```bash
-tf-peek generate plan.json --output report.md
+tf-peek plan.json --output report.md
 ```
 
 Use a custom configuration file:
 
 ```bash
-tf-peek generate plan.json --config infra/peek_config.toml --output report.md
+tf-peek plan.json --config infra/peek_config.toml --output report.md
+```
+
+Print the installed version:
+
+```bash
+tf-peek --version
 ```
 
 ---

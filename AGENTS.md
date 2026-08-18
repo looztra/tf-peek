@@ -1,10 +1,10 @@
 # Agent Instructions
 
-This document provides context and instructions for AI agents working on this repository (`yamkix`).
+This document provides context and instructions for AI agents working on this repository (`tf-peek`).
 
 ## Project Overview
 
-- **Repository**: [looztra/yamkix](https://github.com/looztra/tf-peek)
+- **Repository**: [looztra/tf-peek](https://github.com/looztra/tf-peek)
 - **Language**: Python (managed via `uv`)
 - **Main Branch**: `main`
 - **Architecture documentation**: located in `docs/architecture`

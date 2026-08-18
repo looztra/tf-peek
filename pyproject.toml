@@ -23,7 +23,7 @@ dependencies = [
     "pydantic>=2.12.5",
     "typer>=0.24.1",
 ]
-description = "Add your description here"
+description = "Terraform plan JSON to Markdown report with declarative, per-repository risk tiering"
 dynamic = [
     "version",
 ]
