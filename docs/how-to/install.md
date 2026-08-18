@@ -49,6 +49,10 @@ And that its help output is accessible:
 tf-peek --help
 ```
 
+If the installed package is available but its console script is not on `PATH`, use the supported
+alternative invocation `python -m tf_peek --help`. Prefer `tf-peek` in documentation, scripts, and
+interactive use.
+
 ---
 
 ## Install a specific version

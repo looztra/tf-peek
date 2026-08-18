@@ -36,7 +36,7 @@ requires-python = ">=3.11"
 Repository = "https://github.com/looztra/tf-peek"
 
 [project.scripts]
-tf-peek = "tf_peek.main:app"
+tf-peek = "tf_peek.cli:app"
 
 [dependency-groups]
 dev = [

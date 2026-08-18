@@ -14,7 +14,9 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from tf_peek.main import _KNOWN_AFTER_APPLY, _format_report_value, app, calculate_diff
+from tf_peek.cli import app
+from tf_peek.diff import KNOWN_AFTER_APPLY, calculate_diff
+from tf_peek.formatting import format_report_value
 
 _FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -169,7 +171,7 @@ def test_scalars_render_as_distinguishable_json_literals(value: str | bool | int
     The template previously routed falsy values through a `default('null')` filter,
     which rendered an empty string, a zero and a `false` identically.
     """
-    assert _format_report_value(value) == expected
+    assert format_report_value(value) == expected
 
 
 # ---------------------------------------------------------------------------
@@ -227,7 +229,7 @@ def test_nested_marker_only_container_surfaces() -> None:
     """A marker-only nested container must surface even when absent from `after`."""
     diff = calculate_diff({}, {}, {"network": {"endpoint": {"host": True}}})
     assert diff == {
-        "network": {"before": None, "after": {"endpoint": {"host": _KNOWN_AFTER_APPLY}}},
+        "network": {"before": None, "after": {"endpoint": {"host": KNOWN_AFTER_APPLY}}},
     }
 
 
@@ -240,13 +242,13 @@ def test_trailing_false_list_markers_do_not_create_values() -> None:
 def test_marker_only_list_preserves_gap_before_unknown() -> None:
     """A leading false list marker is preserved as a gap so a later unknown keeps its index."""
     diff = calculate_diff({}, {}, {"slots": [False, {"id": True}, False]})
-    assert diff["slots"]["after"] == [None, {"id": _KNOWN_AFTER_APPLY}]
+    assert diff["slots"]["after"] == [None, {"id": KNOWN_AFTER_APPLY}]
 
 
 def test_marker_beyond_the_concrete_list_appends_unknown_elements() -> None:
     """A marker index past the end of the concrete list adds that unknown element."""
     diff = calculate_diff({"tags": ["prod"]}, {"tags": ["prod"]}, {"tags": [False, True]})
-    assert diff["tags"]["after"] == ["prod", _KNOWN_AFTER_APPLY]
+    assert diff["tags"]["after"] == ["prod", KNOWN_AFTER_APPLY]
 
 
 @pytest.mark.parametrize(
@@ -273,7 +275,7 @@ def test_container_marker_against_null_retains_the_null(
     """
     diff = calculate_diff({attr: "before"}, {attr: after}, {attr: unknown})
     assert diff[attr]["after"] == expected
-    assert _format_report_value(diff[attr]["after"]) == json.dumps(expected)
+    assert format_report_value(diff[attr]["after"]) == json.dumps(expected)
 
 
 def test_concrete_key_order_is_preserved_and_marker_only_keys_appended() -> None:
@@ -289,8 +291,8 @@ def test_concrete_key_order_is_preserved_and_marker_only_keys_appended() -> None
 
     diff = calculate_diff(before, after, unknown)
 
-    assert _format_report_value(diff["settings"]["before"]) == '{"zeta": 1, "alpha": 2}'
-    assert _format_report_value(diff["settings"]["after"]) == (
+    assert format_report_value(diff["settings"]["before"]) == '{"zeta": 1, "alpha": 2}'
+    assert format_report_value(diff["settings"]["after"]) == (
         '{"zeta": 9, "alpha": 2, "beta": "(known after apply) ⏳", "omega": "(known after apply) ⏳"}'
     )
 
@@ -324,7 +326,7 @@ def test_stdout_and_file_are_byte_identical_under_an_ascii_locale(tmp_path: Path
     # would widen the mapping's value type past what `subprocess.run` accepts.
     env = {key: value for key, value in os.environ.items() if key != "PYTHONIOENCODING"}
     env |= {"LC_ALL": "C", "LANG": "C", "PYTHONUTF8": "0", "PYTHONCOERCECLOCALE": "0"}
-    command = [sys.executable, "-m", "tf_peek.main", str(plan_file), "--config", str(config_file)]
+    command = [sys.executable, "-m", "tf_peek", str(plan_file), "--config", str(config_file)]
 
     to_stdout = subprocess.run(command, env=env, capture_output=True, check=True)  # noqa: S603
     subprocess.run([*command, "--output", str(output_file)], env=env, capture_output=True, check=True)  # noqa: S603
@@ -354,7 +356,7 @@ def test_determinism_across_hash_seeds(tmp_path: Path) -> None:
             [
                 sys.executable,
                 "-m",
-                "tf_peek.main",
+                "tf_peek",
                 str(plan_file),
                 "--config",
                 str(config_file),

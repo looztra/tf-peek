@@ -10,7 +10,7 @@ from pathlib import Path
 from syrupy.assertion import SnapshotAssertion
 from typer.testing import CliRunner
 
-from tf_peek.main import app
+from tf_peek.cli import app
 
 _FIXTURES = Path(__file__).parent / "fixtures"
 

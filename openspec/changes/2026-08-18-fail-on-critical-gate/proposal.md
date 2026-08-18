@@ -61,14 +61,12 @@ existing one.
 
 ## Impact
 
-- **Code**: `src/tf_peek/main.py` — two new `typer.Option`s on `generate` (`--fail-on-critical`,
-  `--fail-on-critical-on` backed by a small action `Enum` for free choice validation), and the gate
-  evaluation — reading the existing `tiered_summary[action]["critical"]` per-action counts (no new
-  bookkeeping) — followed by `typer.Exit(code=3)` after the report has been written/echoed.
-- **Tests**: `tests/test_main.py` — new cases for: default-scope trigger and non-trigger, action-scoped
-  trigger and non-trigger (including the "scoped action absent but a *different* critical action is
-  present" divergence case), combining both flags, and an invalid `--fail-on-critical-on` value
-  producing the existing usage-error exit code (`2`).
+- **Code**: `src/tf_peek/actions.py` defines the gate action `Enum`; `src/tf_peek/cli.py` owns the
+  typer options and evaluates the gate after rendering; `src/tf_peek/report.py` supplies the
+  per-action critical counts.
+- **Tests**: `tests/test_gate.py` covers default-scope trigger and non-trigger, action-scoped trigger
+  and non-trigger (including the "scoped action absent but a *different* critical action is present"
+  divergence case), combined flags, and invalid `--fail-on-critical-on` usage errors.
 - **Docs**: `docs/reference/cli.md` (options table, two new `###` sections, exit-code table, an
   example). No other doc site currently documents exit codes or gating, so no further doc drift risk.
 - **No changes** to `resource-tier-config`, `critical-section-rendering`, report templates, or the

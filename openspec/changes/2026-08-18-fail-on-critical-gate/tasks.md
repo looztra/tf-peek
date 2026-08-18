@@ -1,30 +1,27 @@
 ## 1. Gate implementation
 
-- [x] 1.1 In `src/tf_peek/main.py`, add a string `Enum` (e.g. `Action`) with members
-      `create`/`update`/`delete`/`replace`, values matching `action_order` (`main.py:357`). Add a
-      test asserting the enum's values equal `action_order` verbatim, so the two can't silently
-      drift (see design.md "Risks").
-- [x] 1.2 Add `fail_on_critical: bool = typer.Option(False, "--fail-on-critical", help=...)` and
-      `fail_on_critical_on: list[Action] = typer.Option([], "--fail-on-critical-on", help=...)` to
-      `generate()`.
-- [x] 1.3 In the existing per-resource loop in `generate()` (around `main.py:380-429`), alongside
-      the existing `critical_resources_by_action` bucketing, tally
-      `critical_tier_actions_seen: set[str]` — add `action` whenever `rule.tier == "critical"`,
-      unconditional on `action in rule.critical_on`. One `set.add()`, no second pass over
-      `plan.resource_changes`.
-- [x] 1.4 After the report is rendered and written/echoed (after the existing `if output_file: ...
-      else: ...` block), evaluate the gate:
-      - If `fail_on_critical_on` is non-empty: trigger iff any of its values is in
-        `critical_tier_actions_seen`.
-      - Else if `fail_on_critical` is set: trigger iff `critical_resources_by_action` is non-empty
-        (any action key present).
+- [x] 1.1 In `src/tf_peek/actions.py`, add a string `Enum` (`Action`) with members
+      `create`/`update`/`delete`/`replace`, values matching `ACTION_ORDER`. Add a test asserting the
+      enum values equal `ACTION_ORDER` verbatim, so they cannot silently drift (see design.md
+      "Risks").
+- [x] 1.2 In `src/tf_peek/cli.py`, add `fail_on_critical: bool = typer.Option(False,
+      "--fail-on-critical", help=...)` and `fail_on_critical_on: list[Action] = typer.Option([],
+      "--fail-on-critical-on", help=...)` to `generate()`.
+- [x] 1.3 In `src/tf_peek/report.py`'s `build_report_data()` resource loop, maintain
+      `tiered_summary[action]["critical"]` for every critical-tier resource, independent of
+      `critical_on`, without a second pass over `plan.resource_changes`.
+- [x] 1.4 In `src/tf_peek/cli.py`, after the report is rendered and written/echoed, evaluate the
+      gate through `_gate_triggered()`:
+      - If `fail_on_critical_on` is non-empty: trigger iff an action's
+        `tiered_summary[action.value]["critical"]` count is non-zero.
+      - Else if `fail_on_critical` is set: trigger iff `critical_resources_by_action` is non-empty.
       - Else: never trigger.
-      - On trigger, `raise typer.Exit(code=3)`.
-- [x] 1.5 Confirm (existing typer/click behavior, no new code) that an invalid
-      `--fail-on-critical-on` value exits `2` before `json_path` is opened — add a regression test
-      rather than hand-rolled validation.
+      - On trigger, raise `typer.Exit(code=3)`.
+- [x] 1.5 Confirm existing typer/click behavior rejects an invalid `--fail-on-critical-on` value
+      with exit `2` before `json_path` is opened; cover it with a regression test rather than
+      hand-rolled validation.
 
-## 2. Tests (`tests/test_main.py`)
+## 2. Tests (`tests/test_gate.py`)
 
 - [x] 2.1 `test_fail_on_critical_absent_exits_zero` — plan with a critical delete, no flags passed,
       asserts `exit_code == 0` and report content unchanged from today's golden output.
