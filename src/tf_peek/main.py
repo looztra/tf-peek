@@ -2,6 +2,7 @@
 
 import json
 from collections import defaultdict
+from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _package_version
 from pathlib import Path
 from typing import Any
@@ -302,15 +303,20 @@ def _build_type_action_row(rtype: str, counts: dict[str, int]) -> dict[str, Any]
     }
 
 
-def _version_callback(show_version: bool) -> None:
+def _version_callback(ctx: typer.Context, show_version: bool) -> None:
     """Print the installed tf-peek version and exit, if the flag was passed.
 
     Registered as an eager typer callback so it runs — and can exit — before
     the required ``json_path`` argument is validated, matching the standard
     click/typer ``--version`` pattern.
     """
+    if ctx.resilient_parsing:
+        return
     if show_version:
-        typer.echo(_package_version("tf-peek"))
+        try:
+            typer.echo(_package_version("tf-peek"))
+        except PackageNotFoundError:
+            typer.echo("tf-peek version unknown (package metadata not found)")
         raise typer.Exit
 
 

@@ -1,11 +1,13 @@
 """Tests for tf_peek main logic."""
 
 import json
+from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as package_version
 from pathlib import Path
 from typing import Any
 
 import pytest
+import typer
 from typer.testing import CliRunner
 
 from tf_peek.main import (
@@ -13,6 +15,7 @@ from tf_peek.main import (
     _SENSITIVE_VALUE,
     _DisplaySentinel,
     _json_default,
+    _version_callback,
     app,
     calculate_diff,
     get_emoji,
@@ -293,6 +296,26 @@ def test_version_short_flag_behaves_like_long_flag() -> None:
     short_form = runner.invoke(app, ["-V"])
     assert short_form.exit_code == 0, short_form.output
     assert short_form.output == long_form.output
+
+
+def test_version_flag_reports_missing_package_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
+    """--version degrades gracefully instead of crashing when metadata isn't discoverable."""
+
+    def _raise_not_found(_name: str) -> str:
+        msg = "tf-peek"
+        raise PackageNotFoundError(msg)
+
+    monkeypatch.setattr("tf_peek.main._package_version", _raise_not_found)
+    runner = CliRunner()
+    result = runner.invoke(app, ["--version"])
+    assert result.exit_code == 0, result.output
+    assert "not found" in result.output
+
+
+def test_version_callback_is_silent_during_resilient_parsing() -> None:
+    """The eager --version callback must not print or exit during shell-completion resolution."""
+    ctx = typer.Context(typer.main.get_command(app), resilient_parsing=True)
+    _version_callback(ctx, True)
 
 
 def test_generate_subcommand_is_rejected(tmp_path: Path) -> None:
