@@ -15,6 +15,7 @@ from tf_peek.main import (
     ACTION_ORDER,
     Action,
     _DisplaySentinel,
+    _gate_triggered,
     _json_default,
     _version_callback,
     app,
@@ -899,3 +900,63 @@ critical_on = []
 
     scoped_result = _run_generate_raw(plan, config, tmp_path, ["--fail-on-critical-on", "delete"])
     assert scoped_result.exit_code == 3, scoped_result.output  # noqa: PLR2004 — critical gate exit code
+
+
+# ---------------------------------------------------------------------------
+# Unit: _gate_triggered decision matrix (independent of CliRunner)
+# ---------------------------------------------------------------------------
+
+
+def _tiered_summary(critical_actions: set[str]) -> dict[str, dict[str, int]]:
+    """Build a ``tiered_summary`` where each action's ``critical`` count is 1 iff listed."""
+    return {a: {"critical": int(a in critical_actions), "normal": 0, "silent": 0} for a in ACTION_ORDER}
+
+
+@pytest.mark.parametrize(
+    ("fail_on_critical", "fail_on_critical_on", "critical_actions", "critical_to_render", "expected"),
+    [
+        pytest.param(False, [], set(), {}, False, id="no-flags-never-triggers"),
+        pytest.param(True, [], set(), {}, False, id="default-empty-section-no-trigger"),
+        pytest.param(True, [], set(), {"delete": {"t": [{}]}}, True, id="default-nonempty-section-triggers"),
+        pytest.param(False, [Action.delete], {"delete"}, {}, True, id="scoped-matching-action-triggers"),
+        pytest.param(False, [Action.delete], {"replace"}, {}, False, id="scoped-nonmatching-action-no-trigger"),
+        pytest.param(
+            False,
+            [Action.delete, Action.replace],
+            {"replace"},
+            {"delete": {"t": [{}]}},
+            True,
+            id="scoped-matches-second-listed-action-triggers",
+        ),
+        pytest.param(
+            True,
+            [Action.delete],
+            set(),
+            {"delete": {"t": [{}]}},
+            False,
+            id="both-flags-scoped-wins-and-no-match",
+        ),
+        pytest.param(
+            True,
+            [Action.delete],
+            {"delete"},
+            {"delete": {"t": [{}]}},
+            True,
+            id="both-flags-scoped-matches-triggers",
+        ),
+    ],
+)
+def test_gate_triggered_decision_matrix(
+    fail_on_critical: bool,
+    fail_on_critical_on: list[Action],
+    critical_actions: set[str],
+    critical_to_render: dict[str, dict[str, list[dict[str, Any]]]],
+    expected: bool,
+) -> None:
+    """Unit-test the gate's decision logic independent of CliRunner.
+
+    Pins precedence (scoped wins over default), the default↔🚨-section mirror, and that the
+    scoped branch reads the unfiltered per-action critical count from ``tiered_summary``.
+    """
+    summary = _tiered_summary(critical_actions)
+    assert _gate_triggered(fail_on_critical, fail_on_critical_on, summary, critical_to_render) == expected

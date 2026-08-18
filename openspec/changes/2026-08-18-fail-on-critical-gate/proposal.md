@@ -62,10 +62,9 @@ existing one.
 ## Impact
 
 - **Code**: `src/tf_peek/main.py` — two new `typer.Option`s on `generate` (`--fail-on-critical`,
-  `--fail-on-critical-on` backed by a small action `Enum` for free choice validation), a per-action
-  "was a critical-tier resource seen under this action" tally computed alongside the existing
-  `critical_resources_by_action`/`tiered_summary` bookkeeping in the same loop, and the gate
-  evaluation + `typer.Exit(code=3)` after the report has been written/echoed.
+  `--fail-on-critical-on` backed by a small action `Enum` for free choice validation), and the gate
+  evaluation — reading the existing `tiered_summary[action]["critical"]` per-action counts (no new
+  bookkeeping) — followed by `typer.Exit(code=3)` after the report has been written/echoed.
 - **Tests**: `tests/test_main.py` — new cases for: default-scope trigger and non-trigger, action-scoped
   trigger and non-trigger (including the "scoped action absent but a *different* critical action is
   present" divergence case), combining both flags, and an invalid `--fail-on-critical-on` value

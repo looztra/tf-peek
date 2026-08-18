@@ -60,11 +60,11 @@ decision).
 **Scoped mode (`--fail-on-critical-on`) evaluates `tier == "critical"` independent of each rule's own
 `critical_on`.** This is the maintainer's explicit ask: "only fail on delete" must work even for a
 critical-tier resource whose `critical_on` is `["replace"]` (i.e. one that would never itself trigger
-the *default* gate, or ever appear in the 🚨 section under a delete). Implementation: alongside the
-existing `critical_resources_by_action` bucketing, tally `critical_tier_actions_seen: set[str]` —
-just the actions under which at least one `tier == "critical"` resource occurred, unfiltered by
-`critical_on`. Cheap (one `set.add()` in the existing per-resource loop, no second pass over
-`plan.resource_changes`), and it's the only new data the gate needs.
+existing `critical_resources_by_action` bucketing, the scoped gate reads
+`tiered_summary[action]["critical"]` — the per-action count of `tier == "critical"` resources,
+already accumulated in the same loop unfiltered by `critical_on`. No new data structure: the count
+the gate needs is the same one the tiered summary table renders, so there is no second source of
+truth to drift out of sync.
 
 **Consequence accepted, not hidden: scoped mode can diverge from the rendered report.** With
 `--fail-on-critical-on delete`, a run whose only critical-tier operation is a `replace` (which *does*
@@ -119,9 +119,10 @@ validation too) and is out of scope here. Two drift guards pin the contract: a t
 reaches the tally (create/update/delete/replace) is a selectable `Action` value — so a future
 `simple_action` value outside the `Enum` surfaces as a failing test rather than a silent under-gate.
 
-**[Risk — follow-up]** `generate()` already carries `# noqa: C901, PLR0913, PLR0915, PLR0917` and this
-change adds two more typer options to it (5 → 7 parameters). Each subsequent flag costs ~12–15 lines
-across the function, the noqa list, the docs, and the tests — a five-touch diff for a single
+**[Risk — follow-up]** `generate()` carries `# noqa: PLR0913, PLR0917` (the Option A simplification
+dropped it below the `C901`/`PLR0915` thresholds this change originally pushed past), and this
+change adds two more typer options to it (5 → 7 parameters). Each subsequent flag costs ~12–15
+lines across the function, the noqa list, the docs, and the tests — a five-touch diff for a single
 boolean. The study's P0 open-question-0.6 already flagged CLI-shape as unresolved. Signal to act
 on: a fourth gate or a tenth option ⇒ revisit the CLI shape (extract a `gate` module / subcommand
 group) before re-extending `generate()`.

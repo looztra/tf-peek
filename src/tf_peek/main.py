@@ -349,25 +349,26 @@ def _version_callback(ctx: typer.Context, show_version: bool) -> None:
 def _gate_triggered(
     fail_on_critical: bool,
     fail_on_critical_on: list[Action],
-    critical_tier_actions_seen: set[str],
+    tiered_summary: dict[str, dict[str, int]],
     critical_to_render: dict[str, dict[str, list[dict[str, Any]]]],
 ) -> bool:
     """Decide whether the --fail-on-critical(-on) exit-code gate should fire.
 
     ``--fail-on-critical-on`` takes precedence when present: it evaluates against
-    ``critical_tier_actions_seen`` (unfiltered by each rule's own ``critical_on``), independent of
-    whether ``--fail-on-critical`` was also passed. Otherwise ``--fail-on-critical`` mirrors exactly
+    ``tiered_summary[action]["critical"]`` — the per-action count of ``tier == "critical"``
+    resources, unfiltered by each rule's own ``critical_on`` — independent of whether
+    ``--fail-on-critical`` was also passed. Otherwise ``--fail-on-critical`` mirrors exactly
     what the rendered 🚨 section (``critical_to_render``) shows. Neither flag passed never triggers.
     """
     if fail_on_critical_on:
-        return any(action.value in critical_tier_actions_seen for action in fail_on_critical_on)
+        return any(tiered_summary[action.value]["critical"] > 0 for action in fail_on_critical_on)
     if fail_on_critical:
         return bool(critical_to_render)
     return False
 
 
 @app.command()
-def generate(  # noqa: C901, PLR0913, PLR0915, PLR0917 — typer CLI entrypoint, options map 1:1 to flags
+def generate(  # noqa: PLR0913, PLR0917 — typer CLI entrypoint, options map 1:1 to flags
     json_path: Path = typer.Argument(..., help="JSON plan file"),
     config_file: Path | None = typer.Option(None, "--config", "-c"),
     output_file: Path | None = typer.Option(
@@ -428,10 +429,6 @@ def generate(  # noqa: C901, PLR0913, PLR0915, PLR0917 — typer CLI entrypoint,
         action: defaultdict(list) for action in action_order
     }
 
-    # Actions under which at least one tier == "critical" resource occurred, unfiltered by each
-    # rule's own critical_on — the data the --fail-on-critical-on gate needs.
-    critical_tier_actions_seen: set[str] = set()
-
     for rc in plan.resource_changes:
         if rc.simple_action in ("no-op", "read"):
             continue
@@ -477,9 +474,6 @@ def generate(  # noqa: C901, PLR0913, PLR0915, PLR0917 — typer CLI entrypoint,
             "is_summarized": is_summarized,
             "diff": diff,
         }
-
-        if rule.tier == "critical":
-            critical_tier_actions_seen.add(action)
 
         if rule.tier == "critical" and action in rule.critical_on:
             critical_resources_by_action[action][rc.type].append(resource_entry)
@@ -546,7 +540,7 @@ def generate(  # noqa: C901, PLR0913, PLR0915, PLR0917 — typer CLI entrypoint,
         # ``--output`` file.
         typer.echo(rendered_content, nl=False, color=True)
 
-    if _gate_triggered(fail_on_critical, fail_on_critical_on, critical_tier_actions_seen, critical_to_render):
+    if _gate_triggered(fail_on_critical, fail_on_critical_on, tiered_summary, critical_to_render):
         raise typer.Exit(code=3)
 
 
