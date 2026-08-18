@@ -309,14 +309,23 @@ def _version_callback(ctx: typer.Context, show_version: bool) -> None:
     Registered as an eager typer callback so it runs — and can exit — before
     the required ``json_path`` argument is validated, matching the standard
     click/typer ``--version`` pattern.
+
+    When the distribution's metadata is not discoverable (e.g. running from a
+    source checkout outside an installed venv), the callback writes a
+    one-line diagnostic to stderr and exits ``1`` rather than emitting a
+    prose sentence on stdout with exit ``0`` — a wrapper script doing
+    ``VER=$(tf-peek --version)`` should observe a non-zero exit and a
+    parseable error, not silently capture prose as a version.
     """
     if ctx.resilient_parsing:
         return
     if show_version:
         try:
-            typer.echo(_package_version("tf-peek"))
+            version = _package_version("tf-peek")
         except PackageNotFoundError:
-            typer.echo("tf-peek version unknown (package metadata not found)")
+            typer.echo("tf-peek package metadata not found", err=True)
+            raise typer.Exit(code=1) from None
+        typer.echo(version)
         raise typer.Exit
 
 
