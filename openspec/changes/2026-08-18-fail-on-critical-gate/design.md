@@ -114,8 +114,17 @@ deferred; `3` is new API surface that needs to be visible at the same place `1`/
 `list[str]` with no enum today. → **Mitigation**: the new `Enum`'s member values are string literals
 matching `action_order` in `main.py:357`, not re-derived from `config.py` — introducing a shared enum
 across `config.py` and `main.py` is a larger refactor (would touch `ResourceRule.critical_on`'s
-validation too) and is out of scope here; a test asserting the `Enum`'s values equal `action_order`
-guards against drift without doing that refactor now.
+validation too) and is out of scope here. Two drift guards pin the contract: a test asserting the
+`Enum`'s values equal `action_order`, and a second test asserting every `simple_action` outcome that
+reaches the tally (create/update/delete/replace) is a selectable `Action` value — so a future
+`simple_action` value outside the `Enum` surfaces as a failing test rather than a silent under-gate.
+
+**[Risk — follow-up]** `generate()` already carries `# noqa: C901, PLR0913, PLR0915, PLR0917` and this
+change adds two more typer options to it (5 → 7 parameters). Each subsequent flag costs ~12–15 lines
+across the function, the noqa list, the docs, and the tests — a five-touch diff for a single
+boolean. The study's P0 open-question-0.6 already flagged CLI-shape as unresolved. Signal to act
+on: a fourth gate or a tenth option ⇒ revisit the CLI shape (extract a `gate` module / subcommand
+group) before re-extending `generate()`.
 
 ## Migration Plan
 

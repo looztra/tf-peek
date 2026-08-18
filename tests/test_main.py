@@ -21,6 +21,7 @@ from tf_peek.main import (
     calculate_diff,
     get_emoji,
 )
+from tf_peek.models import Change, ResourceChange
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -721,3 +722,180 @@ tier = "critical"
 """
     result = _run_generate_raw(plan, config, tmp_path, ["--fail-on-critical", "--fail-on-critical-on", "delete"])
     assert result.exit_code == 0, result.output
+
+
+# ---------------------------------------------------------------------------
+# Drift guards and report-decoupling invariants (adversarial review hardening)
+# ---------------------------------------------------------------------------
+
+
+def test_action_values_cover_simple_action_outcomes_reaching_gate() -> None:
+    """Every ``simple_action`` that survives the no-op/read filter is selectable on the CLI.
+
+    The scoped gate compares ``rc.simple_action`` (a bare string from ``models.py``) against
+    ``Action`` member values. If ``simple_action`` ever yields a value outside ``Action`` (e.g. a
+    future Terraform action), the scoped gate would silently under-gate. This pins the contract
+    that the two value sets stay aligned for the actions that actually reach the tally.
+    """
+    selectable = {a.value for a in Action}
+    # Each shape produces the simple_action shown; "no-op"/"read" are filtered before the tally
+    # and are deliberately not selectable gate actions.
+    cases = {
+        "create": ["create"],
+        "update": ["update"],
+        "delete": ["delete"],
+        "replace": ["delete", "create"],
+    }
+    for expected, actions in cases.items():
+        rc = ResourceChange(
+            address=f"t.{expected}",
+            type="t",
+            name=expected,
+            change=Change(actions=actions),
+        )
+        assert rc.simple_action == expected
+        assert rc.simple_action in selectable
+
+
+def test_gate_flags_do_not_change_report_bytes(tmp_path: Path) -> None:
+    """Spec: the flags SHALL NOT change the rendered report — only the exit status.
+
+    Runs the same plan/config with and without each gate flag and asserts the written report
+    bytes are identical, so a future refactor threading a flag into ``template.render`` is caught.
+    """
+    plan = _make_plan([_rc_entry("mukta_pg", "prod", ["delete"], before={"plan": "business-4"})])
+    config = """
+[[resources]]
+match_type = "mukta_pg"
+tier = "critical"
+"""
+    baseline = _run_generate_raw(plan, config, tmp_path, [])
+    assert baseline.exit_code == 0, baseline.output
+    baseline_report = (tmp_path / "report.md").read_text()
+
+    for gate_flag in (["--fail-on-critical"], ["--fail-on-critical-on", "delete"]):
+        # tmp_path is reused across iterations; the helper overwrites report.md each call.
+        flagged = _run_generate_raw(plan, config, tmp_path, gate_flag)
+        assert flagged.exit_code == 3, flagged.output  # noqa: PLR2004 — critical gate exit code
+        assert (tmp_path / "report.md").read_text() == baseline_report
+
+
+def test_fail_on_critical_default_uses_rendered_section_not_raw_tier(tmp_path: Path) -> None:
+    """--fail-on-critical must read the filtered 🚨 structure, not the unfiltered per-action tally.
+
+    A critical-tier ``create`` whose own ``critical_on`` excludes ``create`` is NOT rendered in 🚨,
+    so the default gate must exit 0 — even though ``critical_tier_actions_seen`` contains ``create``.
+    A swap of the two data structures in ``_gate_triggered`` would mis-fire here.
+    """
+    plan = _make_plan([_rc_entry("mukta_pg", "prod", ["create"], after={"plan": "business-8"})])
+    config = """
+[[resources]]
+match_type = "mukta_pg"
+tier = "critical"
+critical_on = ["delete", "replace"]
+"""
+    result = _run_generate_raw(plan, config, tmp_path, ["--fail-on-critical"])
+    assert result.exit_code == 0, result.output
+    report = (tmp_path / "report.md").read_text()
+    assert "🚨 Critical Changes" not in report
+
+
+def test_fail_on_critical_on_invalid_action_emits_no_report_on_stdout(tmp_path: Path) -> None:
+    """Invalid --fail-on-critical-on value exits 2 with no report on stdout either.
+
+    The companion file-output test only checks the report file is absent; this pins that nothing
+    is echoed to stdout before typer rejects the value — ``generate()`` is never entered.
+    """
+    plan = _make_plan([_rc_entry("google_storage_bucket", "b1", ["create"])])
+    plan_file = tmp_path / "plan.json"
+    plan_file.write_text(json.dumps(plan))
+    runner = CliRunner()
+    result = runner.invoke(app, [str(plan_file), "--fail-on-critical-on", "destroy"])
+    assert result.exit_code == 2, result.output  # noqa: PLR2004 — click usage-error exit code
+    assert "Terraform Plan Report" not in result.output
+    assert "🚨 Critical Changes" not in result.output
+
+
+# ---------------------------------------------------------------------------
+# Edge cases: pin benign gate behavior against silent change
+# ---------------------------------------------------------------------------
+
+
+def test_fail_on_critical_on_duplicate_values_dedup(tmp_path: Path) -> None:
+    """Duplicate --fail-on-critical-on values are idempotent; a matching critical still exits 3."""
+    plan = _make_plan([_rc_entry("mukta_pg", "prod", ["delete"], before={"plan": "business-4"})])
+    config = """
+[[resources]]
+match_type = "mukta_pg"
+tier = "critical"
+"""
+    result = _run_generate_raw(
+        plan, config, tmp_path, ["--fail-on-critical-on", "delete", "--fail-on-critical-on", "delete"]
+    )
+    assert result.exit_code == 3, result.output  # noqa: PLR2004 — critical gate exit code
+
+
+def test_fail_on_critical_on_all_actions_ignores_critical_on(tmp_path: Path) -> None:
+    """All four actions enumerated: triggers on a critical create even outside its critical_on.
+
+    Distinct from --fail-on-critical (which would exit 0 here, since create is not in
+    critical_on) — pins that the scoped flag evaluates the raw tier, not the rendered section.
+    """
+    plan = _make_plan([_rc_entry("mukta_pg", "prod", ["create"], after={"plan": "business-8"})])
+    config = """
+[[resources]]
+match_type = "mukta_pg"
+tier = "critical"
+critical_on = ["delete", "replace"]
+"""
+    result = _run_generate_raw(
+        plan,
+        config,
+        tmp_path,
+        [
+            "--fail-on-critical-on",
+            "create",
+            "--fail-on-critical-on",
+            "update",
+            "--fail-on-critical-on",
+            "delete",
+            "--fail-on-critical-on",
+            "replace",
+        ],
+    )
+    assert result.exit_code == 3, result.output  # noqa: PLR2004 — critical gate exit code
+
+
+@pytest.mark.parametrize(
+    "extra_args",
+    [
+        pytest.param(["--fail-on-critical"], id="fail-on-critical"),
+        pytest.param(["--fail-on-critical-on", "delete"], id="fail-on-critical-on-delete"),
+    ],
+)
+def test_gate_on_empty_plan_exits_zero(tmp_path: Path, extra_args: list[str]) -> None:
+    """An empty resource_changes list never trips either gate; exit 0, report still rendered."""
+    plan = _make_plan([])
+    result = _run_generate_raw(plan, "", tmp_path, extra_args)
+    assert result.exit_code == 0, result.output
+
+
+def test_fail_on_critical_on_with_empty_critical_on_config(tmp_path: Path) -> None:
+    """A critical resource whose critical_on=[] never reaches 🚨, but the scoped gate still fires.
+
+    Pins the report/gate decoupling at the empty-list boundary: the default flag sees an empty 🚨
+    section (exit 0) while the scoped flag sees the raw critical tier (exit 3).
+    """
+    plan = _make_plan([_rc_entry("mukta_pg", "prod", ["delete"], before={"plan": "business-4"})])
+    config = """
+[[resources]]
+match_type = "mukta_pg"
+tier = "critical"
+critical_on = []
+"""
+    default_result = _run_generate_raw(plan, config, tmp_path, ["--fail-on-critical"])
+    assert default_result.exit_code == 0, default_result.output
+    assert "🚨 Critical Changes" not in (tmp_path / "report.md").read_text()
+
+    scoped_result = _run_generate_raw(plan, config, tmp_path, ["--fail-on-critical-on", "delete"])
+    assert scoped_result.exit_code == 3, scoped_result.output  # noqa: PLR2004 — critical gate exit code
