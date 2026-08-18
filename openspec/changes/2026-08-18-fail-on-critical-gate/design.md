@@ -1,9 +1,9 @@
 ## Context
 
-`generate()` in `src/tf_peek/main.py` already walks every non-`no-op`/`read` resource change once,
+`build_report_data()` in `src/tf_peek/report.py` walks every non-`no-op`/`read` resource change once,
 resolving its `ResourceRule` via `resolve_tier()` and bucketing it into `critical_resources_by_action`
 (used only for the 🚨 section) when `rule.tier == "critical" and action in rule.critical_on`
-(`main.py:426`). That bucketing is a *rendering* decision — it decides what shows up under the 🚨
+(`report.py`). That bucketing is a *rendering* decision — it decides what shows up under the 🚨
 heading, grouped by action then type (`critical-section-rendering` spec). The gate this change adds
 is a *process exit-code* decision, and the maintainer's stated requirement — "only fail on delete,
 even if the report also shows a critical replace" — means the gate cannot simply reuse
@@ -39,7 +39,7 @@ option accepting an optional comma-separated value (à la `docker build --pull=a
 click/typer's clean way to express "flag alone vs. flag-with-value" needs `is_flag=False` +
 `flag_value`, which isn't idiomatic in this codebase's typer usage (every existing option is a plain
 bool, `Path`, or eager callback — see `--config`, `--output`, `--show-sensitive`, `--version` in
-`main.py`) and would need hand-rolled comma-splitting and validation with a custom error message.
+`cli.py`) and would need hand-rolled comma-splitting and validation with a custom error message.
 A repeatable `--fail-on-critical-on ACTION` option backed by a `str, Enum` gets per-value validation,
 `--help` enumeration of the four legal values, and exit-code-2 usage errors on typos for free from
 typer/click — no custom parsing code at all. The plain `--fail-on-critical` bool stays for the
@@ -112,19 +112,19 @@ deferred; `3` is new API surface that needs to be visible at the same place `1`/
 **[Risk]** The four-value action `Enum` (`create`/`update`/`delete`/`replace`) must stay in sync with
 `rc.simple_action`'s value set (`models.py`) and `config.py`'s `critical_on` field, which is a plain
 `list[str]` with no enum today. → **Mitigation**: the new `Enum`'s member values are string literals
-matching `action_order` in `main.py:357`, not re-derived from `config.py` — introducing a shared enum
-across `config.py` and `main.py` is a larger refactor (would touch `ResourceRule.critical_on`'s
-validation too) and is out of scope here. Two drift guards pin the contract: a test asserting the
-`Enum`'s values equal `action_order`, and a second test asserting every `simple_action` outcome that
-reaches the tally (create/update/delete/replace) is a selectable `Action` value — so a future
-`simple_action` value outside the `Enum` surfaces as a failing test rather than a silent under-gate.
+matching `ACTION_ORDER` in `actions.py`, not re-derived from `config.py` — introducing the enum into
+`config.py` and changing `ResourceRule.critical_on` validation is a larger change and is out of scope
+here. Two drift guards pin the contract: a test asserting the `Enum`'s values equal `ACTION_ORDER`,
+and a second test asserting every `simple_action` outcome that reaches the tally
+(create/update/delete/replace) is a selectable `Action` value — so a future `simple_action` value
+outside the `Enum` surfaces as a failing test rather than a silent under-gate.
 
-**[Risk — follow-up]** `generate()` carries `# noqa: PLR0913, PLR0917` (the Option A simplification
-dropped it below the `C901`/`PLR0915` thresholds this change originally pushed past), and this
-change adds two more typer options to it (5 → 7 parameters). Each subsequent flag costs ~12–15
-lines across the function, the noqa list, the docs, and the tests — a five-touch diff for a single
-boolean. The study's P0 open-question-0.6 already flagged CLI-shape as unresolved. Signal to act
-on: a fourth gate or a tenth option ⇒ revisit the CLI shape (extract a `gate` module / subcommand
+**[Risk — follow-up]** `generate()` in `cli.py` carries `# noqa: PLR0913, PLR0917` (the Option A
+simplification dropped it below the `C901`/`PLR0915` thresholds this change originally pushed past),
+and this change adds two more typer options to it (5 → 7 parameters). Each subsequent flag costs
+~12–15 lines across the function, the noqa list, the docs, and the tests — a five-touch diff for a
+single boolean. The study's P0 open-question-0.6 already flagged CLI-shape as unresolved. Signal to
+act on: a fourth gate or a tenth option ⇒ revisit the CLI shape (extract a `gate` module / subcommand
 group) before re-extending `generate()`.
 
 ## Migration Plan

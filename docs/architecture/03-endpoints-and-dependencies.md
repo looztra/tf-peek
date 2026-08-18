@@ -34,12 +34,26 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    main["main.py\n(CLI + orchestration)"]
+    module_entry["__main__.py\n(module entrypoint)"]
+    cli["cli.py\n(CLI + orchestration)"]
+    report["report.py\n(report aggregation + rendering)"]
+    actions["actions.py\n(action vocabulary)"]
+    diff["diff.py\n(semantic diffs)"]
+    formatting["formatting.py\n(Markdown cell formatting)"]
     models["models.py\n(Pydantic models)"]
     config["config.py\n(configuration)"]
     tmpl["templates/report.md.j2\n(Jinja2 template)"]
 
-    main --> models
-    main --> config
-    main --> tmpl
+    module_entry --> cli
+    cli --> actions
+    cli --> config
+    cli --> models
+    cli --> report
+    report --> actions
+    report --> config
+    report --> diff
+    report --> formatting
+    report --> models
+    report --> tmpl
+    formatting --> diff
 ```

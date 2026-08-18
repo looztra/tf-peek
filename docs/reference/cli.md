@@ -1,11 +1,21 @@
 # CLI Reference
 
-`tf-peek` exposes a single top-level command — there is no subcommand name.
+`tf-peek` exposes a single top-level command — there is no subcommand name. The installed
+`tf-peek` command is the preferred user-facing invocation; `python -m tf_peek` is a supported
+alternative when the package is installed but its console script is unavailable on `PATH`.
 
 ## Synopsis
 
+Preferred:
+
 ```text
 tf-peek [OPTIONS] JSON_PATH
+```
+
+Supported alternative:
+
+```text
+python -m tf_peek [OPTIONS] JSON_PATH
 ```
 
 ---

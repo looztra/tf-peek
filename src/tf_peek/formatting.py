@@ -6,7 +6,7 @@ from .diff import DisplaySentinel, ReportValue
 
 
 def _json_default(obj: object) -> str:
-    """Serialize a ``_DisplaySentinel`` as its text so it renders inside JSON."""
+    """Serialize a ``DisplaySentinel`` as its text so it renders inside JSON."""
     if isinstance(obj, DisplaySentinel):
         return obj.text
     msg = f"not JSON serializable: {type(obj).__name__}"

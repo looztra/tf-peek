@@ -1,8 +1,8 @@
 ## Purpose
 
-Defines the top-level command-line surface of `tf-peek`: how the tool is invoked to generate a
-report, and how a caller can discover which version is installed, independent of report content or
-formatting.
+Defines the top-level command-line surface of `tf-peek`: the preferred `tf-peek` console command,
+the supported `python -m tf_peek` module invocation, and how a caller can discover which version is
+installed, independent of report content or formatting.
 
 ## Requirements
 
@@ -21,6 +21,17 @@ subcommand name. The system SHALL NOT require or accept a `generate` subcommand.
 - **WHEN** the user runs `tf-peek generate plan.json`
 - **THEN** the system exits non-zero, treating `generate` as an unexpected positional argument
   rather than a recognized subcommand
+
+### Requirement: Module invocation is supported as an alternative
+
+The system SHALL support `python -m tf_peek JSON_PATH [OPTIONS]` with the same CLI behavior and exit
+status as `tf-peek JSON_PATH [OPTIONS]`. The `tf-peek` console command SHALL remain the preferred
+end-user invocation in documentation and examples.
+
+#### Scenario: Module invocation with a plan path
+
+- **WHEN** the user runs `python -m tf_peek plan.json`
+- **THEN** the system parses `plan.json` and prints the rendered report
 
 ### Requirement: `--version` reports the installed package version
 

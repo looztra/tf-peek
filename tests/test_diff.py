@@ -82,7 +82,7 @@ def test_calculate_diff_unresolvable_after_unknown_marker_leaves_value_unchanged
 
 
 def test_display_sentinel_hash_and_repr() -> None:
-    """``_DisplaySentinel`` is hashable and reprs with its text for debugging."""
+    """``DisplaySentinel`` is hashable and reprs with its text for debugging."""
     sentinel = DisplaySentinel("(known after apply) ⏳")
-    assert hash(sentinel) == hash(("_DisplaySentinel", "(known after apply) ⏳"))
-    assert repr(sentinel) == "_DisplaySentinel('(known after apply) ⏳')"
+    assert hash(sentinel) == hash(("DisplaySentinel", "(known after apply) ⏳"))
+    assert repr(sentinel) == "DisplaySentinel('(known after apply) ⏳')"

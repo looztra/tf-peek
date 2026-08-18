@@ -26,11 +26,11 @@ class DisplaySentinel:
 
     def __hash__(self) -> int:
         """Hash consistently with ``__eq__``, keyed on the marker text."""
-        return hash(("_DisplaySentinel", self.text))
+        return hash((type(self).__name__, self.text))
 
     def __repr__(self) -> str:
         """Return a debug repr showing the marker text."""
-        return f"_DisplaySentinel({self.text!r})"
+        return f"{type(self).__name__}({self.text!r})"
 
 
 # The value domain at the presentation boundary: everything the semantic diff
