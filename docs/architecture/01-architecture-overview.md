@@ -22,12 +22,17 @@ output easier by producing a structured summary with per-resource diffs.
 
 ```text
 src/tf_peek/
-├── __init__.py          # Package marker
-├── main.py              # CLI definition and orchestration logic
-├── models.py            # Pydantic models for the Terraform plan JSON
-├── config.py            # Configuration loading (TOML → PeekConfig)
+├── __init__.py       # Package marker
+├── __main__.py       # Module entrypoint (python -m tf_peek)
+├── cli.py            # CLI definition and top-level orchestration
+├── actions.py        # Terraform action vocabulary shared by the report and the CLI
+├── diff.py           # Semantic diffing of before/after values and their markers
+├── formatting.py     # Rendering of semantic diff values into Markdown table cells
+├── report.py         # Aggregation of a plan into report data, and template rendering
+├── models.py         # Pydantic models for the Terraform plan JSON
+├── config.py         # Configuration loading (TOML → PeekConfig)
 └── templates/
-    └── report.md.j2     # Jinja2 template that renders the Markdown report
+    └── report.md.j2  # Jinja2 template that renders the Markdown report
 ```
 
 ## Processing Pipeline
