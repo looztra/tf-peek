@@ -10,7 +10,10 @@ output easier by producing a structured summary with per-resource diffs.
 
 - **Single responsibility**: a single command that performs one task — convert a plan to a report.
 - **Offline / local-only**: no network calls, no databases. All processing happens on local files.
-- **Declarative configuration**: a TOML file (`peek_config.toml`) controls filtering and summarization per repository.
+- **Declarative configuration**: a TOML file (`peek_config.toml`) assigns per-repository resource
+  tiers (`silent` / `normal` / `critical`) and, for `normal`, a detail level (`full` / `summary`).
+  See [`resource-tier-config`](https://github.com/looztra/tf-peek/blob/main/openspec/specs/resource-tier-config/spec.md)
+  for the rule format.
 - **Structured data ingestion**: the Terraform plan JSON is validated at parse time using Pydantic models.
 - **Separation of concerns**: parsing, business logic, configuration, and rendering are each
   in their own module.
@@ -40,10 +43,13 @@ src/tf_peek/
    / `critical`) and, for `normal`, a `detail` level (`full` / `summary`). A `critical` resource
    whose action is in that rule's `critical_on` list is routed into the report's 🚨 Critical
    Changes section instead of the normal resource list.
-5. **Compute diffs** — `silent`-tier resources and `summary`-detail resources skip diff computation
-   entirely (only counted). For the rest, before/after attribute values are compared. Terraform's
-   `after_unknown` markers are resolved recursively into the `after` value, so a nested unknown leaf
-   becomes `(known after apply)` inside its containing structure instead of being lost.
+5. **Compute / emit diffs** — `silent`-tier resources are only counted: they never reach the diff
+   pipeline and never appear in any rendered entry. `summary`-detail resources are rendered as a
+   title-only collapsible entry (no attribute table, no `(known after apply)` markers); only the
+   `calculate_diff` step is skipped. For everything else, before/after attribute values are
+   compared; Terraform's `after_unknown` markers are resolved recursively into the `after` value,
+   so a nested unknown leaf becomes `(known after apply)` inside its containing structure
+   instead of being lost.
 6. **Mask sensitive values** — an attribute whose `before_sensitive`/`after_sensitive` subtree has any
    truthy leaf is replaced with `(sensitive value)` on both sides, unless `--show-sensitive` is passed.
    Masking runs before any formatting so no serialization path can bypass it.

@@ -6,14 +6,11 @@ command entry point and the flow of data through the system.
 ## CLI Command
 
 ```text
-tf-peek <json_path> [--config <config_file>] [--output <output_file>]
+tf-peek [OPTIONS] JSON_PATH
 ```
 
-| Argument / Option | Description                                                        |
-| :---------------- | :----------------------------------------------------------------- |
-| `json_path`       | Path to the Terraform plan JSON file (required)                    |
-| `--config / -c`   | Path to a `peek_config.toml` override (optional)                   |
-| `--output / -o`   | Path for the output Markdown report (optional, defaults to stdout) |
+The full option surface (`--config`, `--output`, `--show-sensitive`, `--version`, exit codes,
+and example invocations) is documented in the [CLI Reference](../reference/cli.md).
 
 ## Data Flow Diagram
 
@@ -21,10 +18,10 @@ tf-peek <json_path> [--config <config_file>] [--output <output_file>]
 flowchart TD
     A([User: tf-peek]) --> B[Load PeekConfig\nfrom peek_config.toml]
     A --> C[Read & parse\nTerraform plan JSON]
-    B --> D[Filter resource_changes\nignore / summarize rules]
+    B --> D[Classify actions\ncreate / update / delete / replace\nno-op / read excluded]
     C --> D
-    D --> E[Classify actions\ncreate / update / delete / replace]
-    E --> F[Compute attribute diffs\nbefore vs after\n+ resolve nested after_unknown]
+    D --> E[Classify tier\nsilent / normal / critical\nvia [[resources]] rules]
+    E --> F[Compute attribute diffs\nbefore vs after\n+ resolve nested after_unknown\nskip silent and summary]
     F --> F2[Mask sensitive attributes\nunless --show-sensitive]
     F2 --> F3[Format cells\nJSON + Markdown escaping]
     F3 --> G[Render Jinja2 template\nreport.md.j2]
