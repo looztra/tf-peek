@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.1.0](https://github.com/looztra/tf-peek/compare/v1.0.0...v1.1.0) (2026-08-18)
+
+
+### Features
+
+* **cli:** add --fail-on-critical exit-code gate ([#100](https://github.com/looztra/tf-peek/issues/100)) ([4e05003](https://github.com/looztra/tf-peek/commit/4e050035305b9afb22dbaa660b529dc1faf8ff98))
+* **cli:** add --version/-V flag ([236fc4b](https://github.com/looztra/tf-peek/commit/236fc4b390471cb8ea7ec277c28bac936220b2f8))
+
+
+### Bug Fixes
+
+* **build:** align supported Python versions ([#92](https://github.com/looztra/tf-peek/issues/92)) ([722232c](https://github.com/looztra/tf-peek/commit/722232ceceed3da0032b94c0b5b368cf0049a15b))
+* **docs:** remove references to the non-existent `generate` subcommand ([236fc4b](https://github.com/looztra/tf-peek/commit/236fc4b390471cb8ea7ec277c28bac936220b2f8))
+* **main:** mask Terraform-sensitive values in report output ([#95](https://github.com/looztra/tf-peek/issues/95)) ([cb1fc97](https://github.com/looztra/tf-peek/commit/cb1fc97da54b0a3171bff776a51979dc10c3a56a))
+* **report:** harden rendered Terraform values ([#97](https://github.com/looztra/tf-peek/issues/97)) ([48d85e2](https://github.com/looztra/tf-peek/commit/48d85e256a576c8bbc6cee2bd4d7af292f2c8468))
+* **report:** stabilize deterministic changed-property ordering ([#96](https://github.com/looztra/tf-peek/issues/96)) ([5388ba3](https://github.com/looztra/tf-peek/commit/5388ba309ac3f08f5286a6a2d42df3487f0c8eff))
+
 ## 1.0.0 (2026-03-07)
 
 
