@@ -2,6 +2,7 @@
 
 import json
 from collections import defaultdict
+from enum import Enum
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _package_version
 from pathlib import Path
@@ -14,6 +15,22 @@ from .config import load_config, resolve_tier
 from .models import TerraformPlan
 
 app = typer.Typer()
+
+
+class Action(str, Enum):
+    """A Terraform action that can be selected for the ``--fail-on-critical-on`` gate.
+
+    Members' values must stay in sync with ``ACTION_ORDER`` — a test asserts the two match
+    verbatim so they can't silently drift.
+    """
+
+    create = "create"
+    update = "update"
+    delete = "delete"
+    replace = "replace"
+
+
+ACTION_ORDER = ["delete", "replace", "update", "create"]
 
 
 def get_emoji(action: str) -> str:
@@ -329,8 +346,29 @@ def _version_callback(ctx: typer.Context, show_version: bool) -> None:
         raise typer.Exit
 
 
+def _gate_triggered(
+    fail_on_critical: bool,
+    fail_on_critical_on: list[Action],
+    tiered_summary: dict[str, dict[str, int]],
+    critical_to_render: dict[str, dict[str, list[dict[str, Any]]]],
+) -> bool:
+    """Decide whether the --fail-on-critical(-on) exit-code gate should fire.
+
+    ``--fail-on-critical-on`` takes precedence when present: it evaluates against
+    ``tiered_summary[action]["critical"]`` — the per-action count of ``tier == "critical"``
+    resources, unfiltered by each rule's own ``critical_on`` — independent of whether
+    ``--fail-on-critical`` was also passed. Otherwise ``--fail-on-critical`` mirrors exactly
+    what the rendered 🚨 section (``critical_to_render``) shows. Neither flag passed never triggers.
+    """
+    if fail_on_critical_on:
+        return any(tiered_summary[action.value]["critical"] > 0 for action in fail_on_critical_on)
+    if fail_on_critical:
+        return bool(critical_to_render)
+    return False
+
+
 @app.command()
-def generate(
+def generate(  # noqa: PLR0913, PLR0917 — typer CLI entrypoint, options map 1:1 to flags
     json_path: Path = typer.Argument(..., help="JSON plan file"),
     config_file: Path | None = typer.Option(None, "--config", "-c"),
     output_file: Path | None = typer.Option(
@@ -338,6 +376,20 @@ def generate(
     ),
     show_sensitive: bool = typer.Option(
         False, "--show-sensitive", help="Render sensitive attribute values instead of masking them"
+    ),
+    fail_on_critical: bool = typer.Option(
+        False,
+        "--fail-on-critical",
+        help="Exit with status 3 if the rendered Critical Changes section is non-empty.",
+    ),
+    fail_on_critical_on: list[Action] = typer.Option(
+        [],
+        "--fail-on-critical-on",
+        help=(
+            "Exit with status 3 if a critical-tier resource has this action (repeatable). "
+            "Enables the gate on its own and, when passed, takes precedence over "
+            "--fail-on-critical. Evaluated independent of each rule's own critical_on."
+        ),
     ),
     _version: bool = typer.Option(
         False,
@@ -354,7 +406,7 @@ def generate(
     with json_path.open() as f:
         plan = TerraformPlan(**json.load(f))
 
-    action_order = ["delete", "replace", "update", "create"]
+    action_order = ACTION_ORDER
 
     # Per-action, per-tier counts: tiered_summary[action][tier] = count
     tiered_summary: dict[str, dict[str, int]] = {
@@ -487,6 +539,9 @@ def generate(
         # not a TTY, so report content reaches stdout byte-identically to the
         # ``--output`` file.
         typer.echo(rendered_content, nl=False, color=True)
+
+    if _gate_triggered(fail_on_critical, fail_on_critical_on, tiered_summary, critical_to_render):
+        raise typer.Exit(code=3)
 
 
 if __name__ == "__main__":

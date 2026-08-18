@@ -28,6 +28,11 @@ The recommendation is therefore sequenced, not balanced:
 | **P1** | Lean into the differentiator | Ship presets, a risk gate exit code, and `replace_paths`. This is the moat. |
 | **P2** | Reach | GitHub Action, HTML renderer, stdin. This is how people find it. |
 
+**Progress since publication** (see §7 for full status per item): P0 is now fully shipped — all
+nine items, including all five verified defects (D1–D6). P1 item 1.1 (`--fail-on-critical`) has also
+shipped. Effort estimates and the "not yet safe for CI" framing below describe the repository state
+at the time of writing (commit `508e5f8`), not the current state.
+
 Estimated effort to a credible 2.0: **P0 ≈ 2–3 focused days, P1 ≈ 4–5 days, P2 ≈ 4–5 days.** The
 codebase is 336 lines of source with 35 passing tests, so the surface area is small and the work is
 tractable.
@@ -334,7 +339,8 @@ Two deliberate consequences of this framing:
 **Annex layer 3.** Adding `--fail-on-critical` reclassifies the tool from "nicer plan renderer"
 (a crowded, low-differentiation category) to "risk gate with an excellent report attached" (an empty
 one). The tiering engine already computes the signal; the exit code is a few lines. This is the
-highest leverage change in the entire document.
+highest leverage change in the entire document. **Shipped** — `changes/2026-08-18-fail-on-critical-gate`
+(§7 P1 1.1).
 
 **Presets are the product, not the config schema.** A `tf-peek init --provider gcp` that writes a
 curated, commented starter config is what makes the differentiator visible in the first 60 seconds.
@@ -364,25 +370,29 @@ Nothing ships until these land. D1 and D2 in particular invalidate the PR-commen
 | 0.3 | Escape `\|` and collapse newlines in table cells; truncate long values with a configurable `--max-value-width` | **D3** | ✅ Done (escaping/collapsing) — `changes/harden-rendered-values`; `--max-value-width` truncation deliberately deferred (non-goal, see the change's `design.md`) |
 | 0.4 | Render values as JSON, not Python `repr` | **D4a** | ✅ Done — `changes/harden-rendered-values` |
 | 0.5 | Recurse `after_unknown` for nested dict/list unknowns | **D5** | ✅ Done — `changes/harden-rendered-values` |
-| 0.6 | Decide the CLI shape — either `app.add_typer`/second command to keep `generate`, or drop `generate` from all docs. **Fix the tutorial first.** | **D6** | ⬜ Not started |
+| 0.6 | Decide the CLI shape — either `app.add_typer`/second command to keep `generate`, or drop `generate` from all docs. **Fix the tutorial first.** | **D6** | ✅ Done (dropped `generate`, docs corrected) — `changes/2026-08-18-finish-p0-cleanup` |
 | 0.7 | Replace `rich.print` with `typer.echo` for report output | **M4** | ✅ Done — literal `typer.echo` output and stdout/file parity coverage |
-| 0.8 | Add `--version` | **M8** | ⬜ Not started |
-| 0.9 | Fix `pyproject.toml` description (visible on PyPI); fix `AGENTS.md` `yamkix` references; correct `docs/architecture/01` config model | §4.3 | ⬜ Not started |
+| 0.8 | Add `--version` | **M8** | ✅ Done — `changes/2026-08-18-finish-p0-cleanup` |
+| 0.9 | Fix `pyproject.toml` description (visible on PyPI); fix `AGENTS.md` `yamkix` references; correct `docs/architecture/01` config model | §4.3 | ✅ Done — `changes/2026-08-18-finish-p0-cleanup` |
+
+**P0 is complete: 9/9 items shipped.** All five verified defects (D1–D6) are fixed, the integration
+harness is real, and the two remaining metadata/UX gaps (`--version`, project-metadata rot) are
+closed.
 
 ### P1 — Lean into the differentiator (≈4–5 days)
 
 This is the moat. Prioritise 1.1 and 1.2 — they are what make tf-peek *not* a plan renderer.
 
-| # | Action | Addresses |
-| :--- | :--- | :--- |
-| 1.1 | **`--fail-on-critical` / `--exit-code`** — non-zero when a `critical_on` action is present. Turns the tool into a CI gate. | **M2** |
-| 1.2 | **Ship presets + `tf-peek init --provider gcp`** — curated `presets/{gcp,aws,azure,kubernetes}.toml`, packaged and loadable by name. Makes the differentiator visible immediately and creates the contribution on-ramp. | **M6** |
-| 1.3 | **Surface `replace_paths`** — "Replaced because `settings[0].tier` changed" in the 🚨 section. Answers the reviewer's actual question. | **M1** |
-| 1.4 | Config discovery: walk up to repo root, support `TF_PEEK_CONFIG`, support `[tool.tf-peek]` in `pyproject.toml` | **M7** |
-| 1.5 | Nested path-level diffing — flatten to `settings.tier` rows rather than blob-vs-blob | **D4b** |
-| 1.6 | Group by module using the already-parsed `module_address` | **M1** |
-| 1.7 | `output_changes` section | **M1** |
-| 1.8 | Precompile regexes once at config load | perf |
+| # | Action | Addresses | Status |
+| :--- | :--- | :--- | :--- |
+| 1.1 | **`--fail-on-critical` / `--exit-code`** — non-zero when a `critical_on` action is present. Turns the tool into a CI gate. | **M2** | ✅ Done — `changes/2026-08-18-fail-on-critical-gate`, plus a repeatable `--fail-on-critical-on ACTION` invocation-time override beyond the original recommendation (exit code `3`, opt-in per open question 2) |
+| 1.2 | **Ship presets + `tf-peek init --provider gcp`** — curated `presets/{gcp,aws,azure,kubernetes}.toml`, packaged and loadable by name. Makes the differentiator visible immediately and creates the contribution on-ramp. | **M6** | ⬜ Not started |
+| 1.3 | **Surface `replace_paths`** — "Replaced because `settings[0].tier` changed" in the 🚨 section. Answers the reviewer's actual question. | **M1** | ⬜ Not started |
+| 1.4 | Config discovery: walk up to repo root, support `TF_PEEK_CONFIG`, support `[tool.tf-peek]` in `pyproject.toml` | **M7** | ⬜ Not started |
+| 1.5 | Nested path-level diffing — flatten to `settings.tier` rows rather than blob-vs-blob | **D4b** | ⬜ Not started |
+| 1.6 | Group by module using the already-parsed `module_address` | **M1** | ⬜ Not started |
+| 1.7 | `output_changes` section | **M1** | ⬜ Not started |
+| 1.8 | Precompile regexes once at config load | perf | ⬜ Not started |
 
 ### P2 — Reach (≈4–5 days)
 
@@ -410,9 +420,12 @@ This is the moat. Prioritise 1.1 and 1.2 — they are what make tf-peek *not* a 
 ## 8. Open questions
 
 1. **CLI compatibility (D6)** — is `tf-peek generate` worth preserving? Nobody can be using it, since
-   it has never worked. Recommendation: drop it, fix the docs, note it in the changelog.
+   it has never worked. Recommendation: drop it, fix the docs, note it in the changelog. **Resolved
+   — dropped, per `changes/2026-08-18-finish-p0-cleanup`.**
 2. **`--fail-on-critical` default** — opt-in flag, or on-by-default with `--no-fail`? Recommendation:
-   opt-in for 2.0, revisit once presets are mature.
+   opt-in for 2.0, revisit once presets are mature. **Resolved — shipped opt-in, plus a
+   `--fail-on-critical-on ACTION` scoped override, per `changes/2026-08-18-fail-on-critical-gate`.
+   Revisit once 1.2 (presets) ships, as originally planned.**
 3. **Preset distribution** — packaged inside the wheel, or fetched from a separate repo? Packaged is
    simpler and preserves the offline guarantee; a separate repo scales contribution better.
    Recommendation: packaged, revisit if contribution volume justifies otherwise.
