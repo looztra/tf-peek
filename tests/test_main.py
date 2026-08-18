@@ -7,11 +7,13 @@ from typing import Any
 
 import pytest
 import typer
-from typer.testing import CliRunner
+from typer.testing import CliRunner, Result
 
 from tf_peek.main import (
     _KNOWN_AFTER_APPLY,
     _SENSITIVE_VALUE,
+    ACTION_ORDER,
+    Action,
     _DisplaySentinel,
     _json_default,
     _version_callback,
@@ -561,3 +563,161 @@ detail = "summary"
     assert "Details hidden by configuration" in report
     # The actual attribute values should NOT be present in the diff table
     assert "roles/viewer" not in report
+
+
+# ---------------------------------------------------------------------------
+# Integration: --fail-on-critical / --fail-on-critical-on gate
+# ---------------------------------------------------------------------------
+
+
+def test_action_enum_values_match_action_order() -> None:
+    """`Action`'s values must equal `ACTION_ORDER` verbatim so the two can't silently drift."""
+    assert {member.value for member in Action} == set(ACTION_ORDER)
+
+
+def _run_generate_raw(plan: dict[str, Any], config_content: str, tmp_path: Path, extra_args: list[str]) -> Result:
+    """Write plan + config to tmp_path and invoke generate, returning the raw CliRunner result."""
+    plan_file = tmp_path / "plan.json"
+    plan_file.write_text(json.dumps(plan))
+    config_file = tmp_path / "peek_config.toml"
+    config_file.write_text(config_content)
+    output_file = tmp_path / "report.md"
+
+    runner = CliRunner()
+    return runner.invoke(
+        app,
+        [str(plan_file), "--config", str(config_file), "--output", str(output_file), *extra_args],
+    )
+
+
+def test_fail_on_critical_absent_exits_zero(tmp_path: Path) -> None:
+    """No gate flag passed: a critical delete is rendered but the process exits 0 as today."""
+    plan = _make_plan([_rc_entry("mukta_pg", "prod", ["delete"], before={"plan": "business-4"})])
+    config = """
+[[resources]]
+match_type = "mukta_pg"
+tier = "critical"
+"""
+    result = _run_generate_raw(plan, config, tmp_path, [])
+    assert result.exit_code == 0, result.output
+    report = (tmp_path / "report.md").read_text()
+    assert "🚨 Critical Changes" in report
+
+
+def test_fail_on_critical_triggers_on_default_scope(tmp_path: Path) -> None:
+    """--fail-on-critical exits 3 when the rendered 🚨 section is non-empty, report still written."""
+    plan = _make_plan([_rc_entry("mukta_pg", "prod", ["delete"], before={"plan": "business-4"})])
+    config = """
+[[resources]]
+match_type = "mukta_pg"
+tier = "critical"
+"""
+    result = _run_generate_raw(plan, config, tmp_path, ["--fail-on-critical"])
+    assert result.exit_code == 3, result.output  # noqa: PLR2004 — critical gate exit code
+    report = (tmp_path / "report.md").read_text()
+    assert "🚨 Critical Changes" in report
+    assert "mukta_pg.prod" in report
+
+
+def test_fail_on_critical_no_critical_resources_exits_zero(tmp_path: Path) -> None:
+    """--fail-on-critical passed but no critical-tier resources present: exits 0."""
+    plan = _make_plan([_rc_entry("google_storage_bucket", "b1", ["create"])])
+    result = _run_generate_raw(plan, "", tmp_path, ["--fail-on-critical"])
+    assert result.exit_code == 0, result.output
+
+
+def test_fail_on_critical_on_scoped_action_present(tmp_path: Path) -> None:
+    """--fail-on-critical-on delete triggers on a critical delete even outside its own critical_on.
+
+    The resource's own `critical_on` is `["replace"]` only, so it would NOT appear in the 🚨
+    section — the scoped gate must not go through `critical_resources_by_action`.
+    """
+    plan = _make_plan([_rc_entry("mukta_pg", "prod", ["delete"], before={"plan": "business-4"})])
+    config = """
+[[resources]]
+match_type = "mukta_pg"
+tier = "critical"
+critical_on = ["replace"]
+"""
+    result = _run_generate_raw(plan, config, tmp_path, ["--fail-on-critical-on", "delete"])
+    assert result.exit_code == 3, result.output  # noqa: PLR2004 — critical gate exit code
+    report = (tmp_path / "report.md").read_text()
+    assert "🚨 Critical Changes" not in report
+
+
+def test_fail_on_critical_on_divergence_from_rendered_section(tmp_path: Path) -> None:
+    """--fail-on-critical-on delete exits 0 even though the report's 🚨 section shows a replace."""
+    plan = _make_plan(
+        [
+            _rc_entry(
+                "mukta_pg",
+                "prod",
+                ["delete", "create"],
+                before={"plan": "business-4"},
+                after={"plan": "business-8"},
+            ),
+        ]
+    )
+    config = """
+[[resources]]
+match_type = "mukta_pg"
+tier = "critical"
+"""
+    result = _run_generate_raw(plan, config, tmp_path, ["--fail-on-critical-on", "delete"])
+    assert result.exit_code == 0, result.output
+    report = (tmp_path / "report.md").read_text()
+    assert "🚨 Critical Changes" in report
+
+
+def test_fail_on_critical_on_multiple_actions(tmp_path: Path) -> None:
+    """Two --fail-on-critical-on occurrences: a resource matching either triggers exit 3."""
+    plan = _make_plan(
+        [
+            _rc_entry(
+                "mukta_pg",
+                "prod",
+                ["delete", "create"],
+                before={"plan": "business-4"},
+                after={"plan": "business-8"},
+            ),
+        ]
+    )
+    config = """
+[[resources]]
+match_type = "mukta_pg"
+tier = "critical"
+"""
+    result = _run_generate_raw(
+        plan, config, tmp_path, ["--fail-on-critical-on", "delete", "--fail-on-critical-on", "replace"]
+    )
+    assert result.exit_code == 3, result.output  # noqa: PLR2004 — critical gate exit code
+
+
+def test_fail_on_critical_on_invalid_action_is_usage_error(tmp_path: Path) -> None:
+    """An unrecognized --fail-on-critical-on value is a usage error; no report is written."""
+    plan = _make_plan([_rc_entry("google_storage_bucket", "b1", ["create"])])
+    result = _run_generate_raw(plan, "", tmp_path, ["--fail-on-critical-on", "destroy"])
+    assert result.exit_code == 2, result.output  # noqa: PLR2004 — click "usage error" exit code
+    assert not (tmp_path / "report.md").exists()
+
+
+def test_fail_on_critical_on_takes_precedence_when_both_flags_passed(tmp_path: Path) -> None:
+    """Both flags passed: --fail-on-critical-on's scope wins over --fail-on-critical's broader one."""
+    plan = _make_plan(
+        [
+            _rc_entry(
+                "mukta_pg",
+                "prod",
+                ["delete", "create"],
+                before={"plan": "business-4"},
+                after={"plan": "business-8"},
+            ),
+        ]
+    )
+    config = """
+[[resources]]
+match_type = "mukta_pg"
+tier = "critical"
+"""
+    result = _run_generate_raw(plan, config, tmp_path, ["--fail-on-critical", "--fail-on-critical-on", "delete"])
+    assert result.exit_code == 0, result.output
