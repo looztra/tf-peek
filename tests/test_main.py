@@ -571,7 +571,7 @@ detail = "summary"
 
 
 def test_action_enum_values_match_action_order() -> None:
-    """`Action`'s values must equal `ACTION_ORDER` verbatim so the two can't silently drift."""
+    """`Action` contains exactly the actions in `ACTION_ORDER`; CLI ordering is intentional."""
     assert {member.value for member in Action} == set(ACTION_ORDER)
 
 
