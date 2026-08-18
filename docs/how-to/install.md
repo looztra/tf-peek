@@ -60,9 +60,9 @@ interactive use.
 If you need a specific release:
 
 ```bash
-pip install tf-peek==0.1.0
+pip install tf-peek==1.0.0
 # or
-uv tool install tf-peek==0.1.0
+uv tool install tf-peek==1.0.0
 ```
 
 ---
