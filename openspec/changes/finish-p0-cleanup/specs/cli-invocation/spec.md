@@ -33,8 +33,15 @@ performing any report generation.
 - **WHEN** the user runs `tf-peek --version`
 - **THEN** the system prints the installed package version and exits with status `0`, without
   requiring a `JSON_PATH` argument
+ #### Scenario: Version flag short form
 
-#### Scenario: Version flag short form
+ - **WHEN** the user runs `tf-peek -V`
+ - **THEN** the system behaves identically to `tf-peek --version`
 
-- **WHEN** the user runs `tf-peek -V`
-- **THEN** the system behaves identically to `tf-peek --version`
+#### Scenario: Distribution metadata is not discoverable
+
+- **WHEN** the user runs `tf-peek --version` and the installed distribution's metadata is not
+  discoverable (e.g. running from a source checkout outside an installed venv)
+- **THEN** the system writes a one-line diagnostic to stderr, exits with status `1`, and does
+  not write anything to stdout. A wrapper doing ``VER=$(tf-peek --version)`` observes the
+  non-zero exit and an empty version rather than capturing a prose sentence as a version.
