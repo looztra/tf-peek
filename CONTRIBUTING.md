@@ -78,7 +78,7 @@ The README's before/after screenshot is generated from the committed demo plan,
 ```bash
 uv run tf-peek examples/demo-plan.json --config /dev/null -o generated/before.md
 uv run tf-peek examples/demo-plan.json --config config.toml -o generated/after.md
-uv run python tools/make_readme_screenshot.py generated/before.md generated/after.md \
+uv run python toolbox/tools/make_readme_screenshot.py generated/before.md generated/after.md \
   generated/report-before-after.html
 ```
 

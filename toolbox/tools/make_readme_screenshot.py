@@ -1,7 +1,7 @@
 """Build the standalone before/after HTML used for the README screenshot.
 
 Usage:
-    uv run python tools/make_readme_screenshot.py BEFORE_MD AFTER_MD OUT_HTML
+    uv run python toolbox/tools/make_readme_screenshot.py BEFORE_MD AFTER_MD OUT_HTML
 
 Both panels are clipped to the same fixed-height window, so the screenshot is reproducible and shows
 only what a reviewer sees before scrolling. See CONTRIBUTING.md for the full recipe.
