@@ -1,6 +1,9 @@
 """Tests for the tf_peek CLI invocation surface."""
 
 import json
+import os
+import subprocess
+import sys
 from importlib.metadata import PackageNotFoundError
 from pathlib import Path
 
@@ -135,3 +138,158 @@ def test_generate_subcommand_is_rejected(tmp_path: Path) -> None:
     runner = CliRunner()
     result = runner.invoke(app, ["generate", str(plan_file)])
     assert result.exit_code == 2, result.output  # noqa: PLR2004 — click "usage error" exit code
+
+
+# ---------------------------------------------------------------------------
+# Integration: stdin plan source
+# ---------------------------------------------------------------------------
+
+
+def test_generate_reads_plan_from_stdin(tmp_path: Path) -> None:
+    """`tf-peek -` reads the plan JSON from stdin and renders the same report as a file path."""
+    plan = make_plan([rc_entry("google_storage_bucket", "b1", ["create"], after={"name": "b1"})])
+    plan_json = json.dumps(plan)
+    config_file = tmp_path / "peek_config.toml"
+    config_file.write_text("")
+
+    runner = CliRunner()
+    stdin_result = runner.invoke(app, ["-", "--config", str(config_file)], input=plan_json)
+    assert stdin_result.exit_code == 0, stdin_result.output
+
+    plan_file = tmp_path / "plan.json"
+    plan_file.write_text(plan_json)
+    file_result = runner.invoke(app, [str(plan_file), "--config", str(config_file)])
+    assert file_result.exit_code == 0, file_result.output
+
+    assert stdin_result.output == file_result.output
+
+
+def test_module_invocation_reads_plan_from_stdin() -> None:
+    """`python -m tf_peek -` behaves identically to `tf-peek -`.
+
+    Covers the "Module invocation supports stdin identically" scenario as a real subprocess
+    invocation of the module entrypoint, rather than only the in-process ``CliRunner`` coverage
+    above — ``__main__.py`` delegates straight to the same Typer ``app`` (see
+    ``test_module_entrypoint_invokes_cli_app``), so this exercises the identical stdin code path
+    through the actual `-m` entrypoint.
+    """
+    plan = make_plan([rc_entry("google_storage_bucket", "b1", ["create"], after={"name": "b1"})])
+    plan_json = json.dumps(plan)
+
+    result = subprocess.run(
+        [sys.executable, "-m", "tf_peek", "-"],
+        input=plan_json,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "google_storage_bucket.b1" in result.stdout
+
+
+def test_generate_without_json_path_is_a_usage_error() -> None:
+    """Omitting JSON_PATH entirely stays a usage error (exit 2) and does not implicitly read stdin."""
+    runner = CliRunner()
+    result = runner.invoke(app, [])
+    assert result.exit_code == 2, result.output  # noqa: PLR2004 — click "usage error" exit code
+
+
+# ---------------------------------------------------------------------------
+# Integration: plan-loading failure diagnostics
+# ---------------------------------------------------------------------------
+
+
+def test_generate_nonexistent_file_path_exits_one_with_clean_diagnostic(tmp_path: Path) -> None:
+    """A nonexistent `JSON_PATH` file exits 1 with a one-line diagnostic, not an uncaught traceback.
+
+    File-only: stdin has no equivalent "missing" case (there is nothing to open by path).
+    """
+    missing_file = tmp_path / "missing.json"
+
+    runner = CliRunner()
+    result = runner.invoke(app, [str(missing_file)])
+
+    assert result.exit_code == 1, result.output
+    assert "cannot read plan" in result.output
+    assert "Traceback" not in result.output
+
+
+@pytest.mark.parametrize(
+    ("content", "expected_snippet"),
+    [
+        pytest.param("{not valid json", "not valid JSON", id="malformed-json"),
+        pytest.param("", "not valid JSON", id="empty-input"),
+        pytest.param("[]", "must be an object", id="non-object-json-array"),
+        pytest.param('"a string"', "must be an object", id="non-object-json-string"),
+        pytest.param(
+            json.dumps({"resource_changes": "not-a-list"}),
+            "does not match the expected structure",
+            id="wrong-resource-changes-type",
+        ),
+    ],
+)
+@pytest.mark.parametrize("source", ["file", "stdin"])
+def test_generate_malformed_or_invalid_plan_exits_one_with_clean_diagnostic(
+    source: str,
+    content: str,
+    expected_snippet: str,
+    tmp_path: Path,
+) -> None:
+    """Each malformed/invalid-plan failure mode exits 1 with a clean diagnostic, no traceback.
+
+    Identically whether the plan comes from a file path or stdin.
+    """
+    runner = CliRunner()
+    if source == "file":
+        plan_file = tmp_path / "plan.json"
+        plan_file.write_text(content)
+        result = runner.invoke(app, [str(plan_file)])
+    else:
+        result = runner.invoke(app, ["-"], input=content)
+
+    assert result.exit_code == 1, result.output
+    assert expected_snippet in result.output
+    assert "Traceback" not in result.output
+
+
+# ---------------------------------------------------------------------------
+# Integration: locale-independent decoding
+# ---------------------------------------------------------------------------
+
+
+def test_plan_decodes_as_utf8_under_non_utf8_locale(tmp_path: Path) -> None:
+    """Non-ASCII plan content decodes correctly under a non-UTF-8 process locale (e.g. `LANG=C`).
+
+    Covers both file and stdin sources. Locale-derived stream encodings are resolved once at
+    interpreter startup, so this runs the CLI in a fresh subprocess with `LANG`/`LC_ALL` forced
+    to the legacy "C" locale — and PEP 538/540 auto-coercion/UTF-8-mode disabled — rather than
+    monkeypatching the current process's already-initialized environment, which would not
+    observably change stream encodings.
+    """
+    plan = make_plan([rc_entry("google_storage_bucket", "b1", ["create"], after={"name": "café-\u00e9toile"})])
+    plan_json = json.dumps(plan, ensure_ascii=False)
+
+    env = dict(os.environ)
+    env.update(LANG="C", LC_ALL="C", PYTHONCOERCECLOCALE="0", PYTHONUTF8="0")
+
+    plan_file = tmp_path / "plan.json"
+    plan_file.write_bytes(plan_json.encode("utf-8"))
+
+    file_result = subprocess.run(  # noqa: S603
+        [sys.executable, "-m", "tf_peek", str(plan_file)],
+        env=env,
+        capture_output=True,
+        check=False,
+    )
+    assert file_result.returncode == 0, file_result.stderr.decode("utf-8", errors="replace")
+    assert "café".encode() in file_result.stdout
+
+    stdin_result = subprocess.run(
+        [sys.executable, "-m", "tf_peek", "-"],
+        input=plan_json.encode("utf-8"),
+        env=env,
+        capture_output=True,
+        check=False,
+    )
+    assert stdin_result.returncode == 0, stdin_result.stderr.decode("utf-8", errors="replace")
+    assert "café".encode() in stdin_result.stdout
