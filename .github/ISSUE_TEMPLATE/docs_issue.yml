@@ -1,0 +1,25 @@
+---
+name: Documentation issue
+description: Something in the docs is wrong, missing, or unclear
+title: '[docs] '
+labels: [documentation]
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Page
+      description: URL under https://looztra.github.io/tf-peek/ or a path under `docs/`
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong, missing, or unclear
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested wording
+    validations:
+      required: false

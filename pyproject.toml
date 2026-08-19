@@ -33,6 +33,10 @@ readme = "README.md"
 requires-python = ">=3.11"
 
 [project.urls]
+Changelog = "https://github.com/looztra/tf-peek/blob/main/CHANGELOG.md"
+Documentation = "https://looztra.github.io/tf-peek/"
+Homepage = "https://looztra.github.io/tf-peek/"
+Issues = "https://github.com/looztra/tf-peek/issues"
 Repository = "https://github.com/looztra/tf-peek"
 
 [project.scripts]
@@ -43,6 +47,7 @@ dev = [
     { include-group = "docs" },
     "tox>=4.2",
     "faker>=36.0",
+    "markdown>=3.10",
     "poethepoet>=0.29.0",
     "pylint>=3.3.0",
     "pyright>=1.1.384",

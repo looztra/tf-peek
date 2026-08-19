@@ -1,0 +1,55 @@
+---
+name: Bug report
+description: tf-peek produced a wrong report, a wrong exit code, or crashed
+title: '[bug] '
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Redact before posting. `tf-peek` masks values Terraform marks sensitive, but a plan still
+        carries project ids, hostnames and account names. For a suspected vulnerability, do not open
+        an issue — follow [SECURITY.md](https://github.com/looztra/tf-peek/blob/main/SECURITY.md).
+  - type: input
+    id: version
+    attributes:
+      label: tf-peek version
+      description: Output of `tf-peek --version`
+      placeholder: 1.1.0
+    validations:
+      required: true
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      placeholder: 3.13.1
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: Fedora 44 / Ubuntu 24.04 / macOS 15
+    validations:
+      required: true
+  - type: textarea
+    id: expected-actual
+    attributes:
+      label: What you expected, and what happened instead
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: The command you ran, its output, and a redacted minimal plan JSON.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant peek_config.toml rules
+      render: toml
+    validations:
+      required: false

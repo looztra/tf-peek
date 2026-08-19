@@ -1,0 +1,330 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.5",
+  "resource_changes": [
+    {
+      "address": "google_sql_database_instance.prod",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "google_sql_database_instance",
+      "name": "prod",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": [
+          "delete",
+          "create"
+        ],
+        "before": {
+          "name": "prod-db",
+          "root_password": "hunter2",
+          "settings": [
+            {
+              "tier": "db-f1-micro",
+              "availability_type": "ZONAL",
+              "backup_configuration": [
+                {
+                  "enabled": true,
+                  "retained_backups": 7
+                }
+              ]
+            }
+          ]
+        },
+        "after": {
+          "name": "prod-db",
+          "root_password": "s3cr3t!",
+          "settings": [
+            {
+              "tier": "db-custom-4-15360",
+              "availability_type": "REGIONAL",
+              "backup_configuration": [
+                {
+                  "enabled": true,
+                  "retained_backups": 30
+                }
+              ]
+            }
+          ]
+        },
+        "after_unknown": {
+          "name": false,
+          "root_password": false,
+          "settings": [
+            {
+              "tier": false,
+              "ip_address": true
+            }
+          ]
+        },
+        "before_sensitive": {
+          "root_password": true
+        },
+        "after_sensitive": {
+          "root_password": true
+        },
+        "replace_paths": [
+          [
+            "settings",
+            0,
+            "tier"
+          ]
+        ]
+      }
+    },
+    {
+      "address": "module.storage.google_storage_bucket.legacy_assets",
+      "module_address": "module.storage",
+      "mode": "managed",
+      "type": "google_storage_bucket",
+      "name": "legacy_assets",
+      "change": {
+        "actions": [
+          "delete"
+        ],
+        "before": {
+          "name": "acme-legacy-assets",
+          "location": "EU",
+          "force_destroy": true
+        },
+        "after": null,
+        "after_unknown": {},
+        "before_sensitive": false,
+        "after_sensitive": false
+      }
+    },
+    {
+      "address": "google_compute_network_peering.to_shared",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "google_compute_network_peering",
+      "name": "to_shared",
+      "change": {
+        "actions": [
+          "delete"
+        ],
+        "before": {
+          "name": "to-shared-vpc",
+          "peer_network": "projects/acme-shared/global/networks/shared",
+          "export_custom_routes": false
+        },
+        "after": null,
+        "after_unknown": {},
+        "before_sensitive": false,
+        "after_sensitive": false
+      }
+    },
+    {
+      "address": "google_cloud_run_service.api",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "google_cloud_run_service",
+      "name": "api",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "before": {
+          "image": "eu.gcr.io/acme/api:1.4.2",
+          "min_instances": 1
+        },
+        "after": {
+          "image": "eu.gcr.io/acme/api:1.5.0",
+          "min_instances": 2
+        },
+        "after_unknown": {
+          "status": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": false
+      }
+    },
+    {
+      "address": "module.network.google_compute_firewall.allow_https",
+      "module_address": "module.network",
+      "mode": "managed",
+      "type": "google_compute_firewall",
+      "name": "allow_https",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "name": "allow-https",
+          "source_ranges": [
+            "0.0.0.0/0"
+          ],
+          "priority": 1000
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": false
+      }
+    },
+    {
+      "address": "google_project_iam_member.ci_deployer",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "ci_deployer",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "role": "roles/run.admin",
+          "member": "serviceAccount:ci@acme.iam.gserviceaccount.com"
+        },
+        "after_unknown": {
+          "etag": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": false
+      }
+    },
+    {
+      "address": "google_project_iam_member.viewer",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "viewer",
+      "change": {
+        "actions": [
+          "delete"
+        ],
+        "before": {
+          "role": "roles/viewer",
+          "member": "user:alumni@acme.example"
+        },
+        "after": null,
+        "after_unknown": {},
+        "before_sensitive": false,
+        "after_sensitive": false
+      }
+    },
+    {
+      "address": "google_secret_manager_secret_iam_member.api_db_password",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "google_secret_manager_secret_iam_member",
+      "name": "api_db_password",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "role": "roles/secretmanager.secretAccessor",
+          "member": "serviceAccount:api@acme.iam.gserviceaccount.com"
+        },
+        "after_unknown": {
+          "etag": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": false
+      }
+    },
+    {
+      "address": "null_resource.deploy_trigger",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "null_resource",
+      "name": "deploy_trigger",
+      "change": {
+        "actions": [
+          "delete",
+          "create"
+        ],
+        "before": {
+          "triggers": {
+            "revision": "1.4.2"
+          }
+        },
+        "after": {
+          "triggers": {
+            "revision": "1.5.0"
+          }
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": false
+      }
+    },
+    {
+      "address": "random_password.db_root",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "random_password",
+      "name": "db_root",
+      "change": {
+        "actions": [
+          "delete",
+          "create"
+        ],
+        "before": {
+          "length": 24,
+          "result": "old"
+        },
+        "after": {
+          "length": 32
+        },
+        "after_unknown": {
+          "result": true
+        },
+        "before_sensitive": {
+          "result": true
+        },
+        "after_sensitive": {
+          "result": true
+        }
+      }
+    },
+    {
+      "address": "random_id.suffix",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "random_id",
+      "name": "suffix",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "byte_length": 4
+        },
+        "after_unknown": {
+          "hex": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": false
+      }
+    },
+    {
+      "address": "time_rotating.cert_renewal",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "time_rotating",
+      "name": "cert_renewal",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "before": {
+          "rotation_days": 30
+        },
+        "after": {
+          "rotation_days": 90
+        },
+        "after_unknown": {},
+        "before_sensitive": false,
+        "after_sensitive": false
+      }
+    }
+  ]
+}

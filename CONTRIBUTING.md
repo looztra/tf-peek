@@ -69,6 +69,26 @@ Run `make update-requirements-file`, this will basically:
   catalogued defect (see `docs/studies/2026-08-15-capability-and-market-analysis.md §4.1`); when a
   fix lands, remove its `xfail` marker — `strict=True` fails CI if you forget
 
+### Regenerating the README screenshot
+
+The README's before/after screenshot is generated from the committed demo plan,
+`examples/demo-plan.json`. The report it produces is frozen by
+`tests/integration/test_golden.py::test_demo_plan_report`.
+
+```bash
+uv run tf-peek examples/demo-plan.json --config /dev/null -o generated/before.md
+uv run tf-peek examples/demo-plan.json --config config.toml -o generated/after.md
+uv run python toolbox/tools/make_readme_screenshot.py generated/before.md generated/after.md \
+  generated/report-before-after.html
+```
+
+Capture the PNG at `docs/assets/report-before-after.png`, viewport `1440x900`,
+`deviceScaleFactor: 2`, full page:
+
+```bash
+chromium --headless=new --screenshot=docs/assets/report-before-after.png --window-size=1440,920 --force-device-scale-factor=2 --hide-scrollbars generated/report-before-after.html
+```
+
 ### Pre-Commit
 
 - If you want to run pre-commit before each commit, run once `make precommit-install`
@@ -102,3 +122,8 @@ Run `make update-requirements-file`, this will basically:
 #### Others
 
 - Feel free to contribute any other editor configuration
+
+## Code of conduct and security
+
+This project follows the [Code of Conduct](CODE_OF_CONDUCT.md). To report a security
+vulnerability, follow [SECURITY.md](SECURITY.md) — never a public issue.
