@@ -65,6 +65,12 @@ repos:
               openspec/.*
           )$
 
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.38.0
+    hooks:
+      - id: check-github-issue-forms
+      - id: check-github-issue-config
+
   - repo: local
     hooks:
       - id: taplo
