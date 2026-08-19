@@ -294,6 +294,25 @@ def test_generate_malformed_or_invalid_plan_exits_one_with_clean_diagnostic(
 
 
 @pytest.mark.parametrize("source", ["file", "stdin"])
+def test_generate_multi_error_plan_reports_remaining_validation_errors(source: str, tmp_path: Path) -> None:
+    """A multi-error plan reports the first validation error plus its remaining count."""
+    content = json.dumps({"resource_changes": [{}]})
+    config_file = tmp_path / "peek_config.toml"
+    config_file.write_text("")
+    if source == "file":
+        plan_file = tmp_path / "plan.json"
+        plan_file.write_text(content)
+        result = CliRunner().invoke(app, [str(plan_file), "--config", str(config_file)])
+    else:
+        result = CliRunner().invoke(app, ["-", "--config", str(config_file)], input=content)
+
+    assert result.exit_code == 1, result.output
+    assert "does not match the expected structure" in result.output
+    assert "(+" in result.output
+    assert "Traceback" not in result.output
+
+
+@pytest.mark.parametrize("source", ["file", "stdin"])
 def test_generate_invalid_utf8_plan_exits_one_with_clean_diagnostic(source: str, tmp_path: Path) -> None:
     """Undecodable plan bytes exit 1 with the specified diagnostic for either input source."""
     content = b"\xff\xfe"
