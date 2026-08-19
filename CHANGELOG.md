@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/looztra/tf-peek/compare/v1.1.0...v1.2.0) (2026-08-19)
+
+
+### Features
+
+* **cli:** add stdin plan support and load-error diagnostics ([#105](https://github.com/looztra/tf-peek/issues/105)) ([d1e9607](https://github.com/looztra/tf-peek/commit/d1e9607227c6eeb87cb9b1442cd6da51d2c16296))
+
 ## [1.1.0](https://github.com/looztra/tf-peek/compare/v1.0.0...v1.1.0) (2026-08-18)
 
 
