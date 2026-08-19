@@ -164,7 +164,7 @@ def test_generate_reads_plan_from_stdin(tmp_path: Path) -> None:
     assert stdin_result.output == file_result.output
 
 
-def test_module_invocation_reads_plan_from_stdin() -> None:
+def test_module_invocation_reads_plan_from_stdin(tmp_path: Path) -> None:
     """`python -m tf_peek -` behaves identically to `tf-peek -`.
 
     Covers the "Module invocation supports stdin identically" scenario as a real subprocess
@@ -175,9 +175,11 @@ def test_module_invocation_reads_plan_from_stdin() -> None:
     """
     plan = make_plan([rc_entry("google_storage_bucket", "b1", ["create"], after={"name": "b1"})])
     plan_json = json.dumps(plan)
+    config_file = tmp_path / "peek_config.toml"
+    config_file.write_text("")
 
-    result = subprocess.run(
-        [sys.executable, "-m", "tf_peek", "-"],
+    result = subprocess.run(  # noqa: S603
+        [sys.executable, "-m", "tf_peek", "-", "--config", str(config_file)],
         input=plan_json,
         capture_output=True,
         text=True,
@@ -205,13 +207,50 @@ def test_generate_nonexistent_file_path_exits_one_with_clean_diagnostic(tmp_path
     File-only: stdin has no equivalent "missing" case (there is nothing to open by path).
     """
     missing_file = tmp_path / "missing.json"
+    config_file = tmp_path / "peek_config.toml"
+    config_file.write_text("")
 
     runner = CliRunner()
-    result = runner.invoke(app, [str(missing_file)])
+    result = runner.invoke(app, [str(missing_file), "--config", str(config_file)])
 
     assert result.exit_code == 1, result.output
     assert "cannot read plan" in result.output
     assert "Traceback" not in result.output
+
+
+def test_generate_unreadable_plan_path_exits_one_with_clean_diagnostic(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """A read failure after argument parsing exits 1 instead of becoming a usage error."""
+    plan_file = tmp_path / "plan.json"
+    config_file = tmp_path / "peek_config.toml"
+    config_file.write_text("")
+
+    def raise_permission_error(*_args: object, **_kwargs: object) -> str:
+        raise PermissionError
+
+    monkeypatch.setattr(Path, "read_text", raise_permission_error)
+    result = CliRunner().invoke(app, [str(plan_file), "--config", str(config_file)])
+
+    assert result.exit_code == 1, result.output
+    assert "cannot read plan" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_generate_reads_dot_dash_as_a_file_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """`./-` opens a file named `-` instead of selecting the stdin sentinel."""
+    plan = make_plan([rc_entry("google_storage_bucket", "b1", ["create"], after={"name": "b1"})])
+    dash_file = tmp_path / "-"
+    dash_file.write_text(json.dumps(plan))
+    config_file = tmp_path / "peek_config.toml"
+    config_file.write_text("")
+    monkeypatch.chdir(tmp_path)
+
+    result = CliRunner().invoke(app, ["./-", "--config", str(config_file)])
+
+    assert result.exit_code == 0, result.output
+    assert "google_storage_bucket.b1" in result.output
 
 
 @pytest.mark.parametrize(
@@ -240,15 +279,36 @@ def test_generate_malformed_or_invalid_plan_exits_one_with_clean_diagnostic(
     Identically whether the plan comes from a file path or stdin.
     """
     runner = CliRunner()
+    config_file = tmp_path / "peek_config.toml"
+    config_file.write_text("")
     if source == "file":
         plan_file = tmp_path / "plan.json"
         plan_file.write_text(content)
-        result = runner.invoke(app, [str(plan_file)])
+        result = runner.invoke(app, [str(plan_file), "--config", str(config_file)])
     else:
-        result = runner.invoke(app, ["-"], input=content)
+        result = runner.invoke(app, ["-", "--config", str(config_file)], input=content)
 
     assert result.exit_code == 1, result.output
     assert expected_snippet in result.output
+    assert "Traceback" not in result.output
+
+
+@pytest.mark.parametrize("source", ["file", "stdin"])
+def test_generate_invalid_utf8_plan_exits_one_with_clean_diagnostic(source: str, tmp_path: Path) -> None:
+    """Undecodable plan bytes exit 1 with the specified diagnostic for either input source."""
+    content = b"\xff\xfe"
+    config_file = tmp_path / "peek_config.toml"
+    config_file.write_text("")
+    runner = CliRunner()
+    if source == "file":
+        plan_file = tmp_path / "plan.json"
+        plan_file.write_bytes(content)
+        result = runner.invoke(app, [str(plan_file), "--config", str(config_file)])
+    else:
+        result = runner.invoke(app, ["-", "--config", str(config_file)], input=content)
+
+    assert result.exit_code == 1, result.output
+    assert "not valid UTF-8" in result.output
     assert "Traceback" not in result.output
 
 
@@ -269,14 +329,16 @@ def test_plan_decodes_as_utf8_under_non_utf8_locale(tmp_path: Path) -> None:
     plan = make_plan([rc_entry("google_storage_bucket", "b1", ["create"], after={"name": "café-\u00e9toile"})])
     plan_json = json.dumps(plan, ensure_ascii=False)
 
-    env = dict(os.environ)
+    env = {key: value for key, value in os.environ.items() if key != "PYTHONIOENCODING"}
     env.update(LANG="C", LC_ALL="C", PYTHONCOERCECLOCALE="0", PYTHONUTF8="0")
 
     plan_file = tmp_path / "plan.json"
     plan_file.write_bytes(plan_json.encode("utf-8"))
+    config_file = tmp_path / "peek_config.toml"
+    config_file.write_text("")
 
     file_result = subprocess.run(  # noqa: S603
-        [sys.executable, "-m", "tf_peek", str(plan_file)],
+        [sys.executable, "-m", "tf_peek", str(plan_file), "--config", str(config_file)],
         env=env,
         capture_output=True,
         check=False,
@@ -284,8 +346,8 @@ def test_plan_decodes_as_utf8_under_non_utf8_locale(tmp_path: Path) -> None:
     assert file_result.returncode == 0, file_result.stderr.decode("utf-8", errors="replace")
     assert "café".encode() in file_result.stdout
 
-    stdin_result = subprocess.run(
-        [sys.executable, "-m", "tf_peek", "-"],
+    stdin_result = subprocess.run(  # noqa: S603
+        [sys.executable, "-m", "tf_peek", "-", "--config", str(config_file)],
         input=plan_json.encode("utf-8"),
         env=env,
         capture_output=True,

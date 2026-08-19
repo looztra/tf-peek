@@ -28,8 +28,8 @@ python -m tf_peek [OPTIONS] JSON_PATH | -
 
 `JSON_PATH` must be a file produced by `terraform show -json <planfile>` — or that same output
 piped to stdin when `JSON_PATH` is `-`. `JSON_PATH` is always required; omitting it entirely is a
-usage error (exit `2`), even though `-` is accepted as its value. There is no way to name a real
-file literally called `-`; use a path like `./-` instead.
+usage error (exit `2`), even though `-` is accepted as its value. A file literally named `-` can be
+read by passing `./-`.
 
 ---
 

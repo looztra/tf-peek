@@ -65,24 +65,23 @@ def _gate_triggered(
     return False
 
 
-def _read_plan_json(json_path: Path) -> str:
-    """Return the plan JSON text for ``json_path``, reading from stdin when it is ``-``.
+def _read_plan_json(json_path: str) -> str:
+    """Return plan JSON text for ``json_path``, reading stdin for the ``-`` sentinel.
 
     Args:
-        json_path: Path to the plan JSON file, or the literal ``Path("-")`` sentinel to read
-            from standard input instead of a file.
+        json_path: Raw plan JSON path, or the literal ``-`` sentinel to read standard input.
 
     Returns:
         The plan JSON text, decoded as UTF-8 regardless of the ambient locale.
     """
-    if json_path == Path("-"):
+    if json_path == "-":
         return sys.stdin.buffer.read().decode("utf-8")
-    return json_path.read_text(encoding="utf-8")
+    return Path(json_path).read_text(encoding="utf-8")
 
 
 @app.command()
 def generate(  # noqa: PLR0913, PLR0917 — typer CLI entrypoint, options map 1:1 to flags
-    json_path: Path = typer.Argument(..., help="JSON plan file, or '-' to read from stdin"),
+    json_path: str = typer.Argument(..., help="JSON plan file, or '-' to read from stdin"),
     config_file: Path | None = typer.Option(None, "--config", "-c"),
     output_file: Path | None = typer.Option(
         None, "--output", "-o", help="Output file for markdown report (default: stdout)"
