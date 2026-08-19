@@ -30,9 +30,9 @@ The recommendation is therefore sequenced, not balanced:
 
 **Progress since publication** (see §7 for full status per item): P0 is now fully shipped — all
 nine items, including all five verified defects (D1–D6). P1 item 1.1 (`--fail-on-critical`) has
-also shipped, and so has P2 item 2.3 (stdin support). Effort estimates and the "not yet safe for
-CI" framing below describe the repository state at the time of writing (commit `508e5f8`), not the
-current state.
+also shipped, and so has P2 items 2.3 (stdin support), 2.7 (community health files) and 2.8 (README
+rewrite). Effort estimates and the "not yet safe for CI" framing below describe the repository
+state at the time of writing (commit `508e5f8`), not the current state.
 
 Estimated effort to a credible 2.0: **P0 ≈ 2–3 focused days, P1 ≈ 4–5 days, P2 ≈ 4–5 days.** The
 codebase is 336 lines of source with 35 passing tests, so the surface area is small and the work is
@@ -269,8 +269,9 @@ tiers don't work".
 - **`AGENTS.md` says the repository is `yamkix`** (lines 3, 7) — copy-paste from a sibling project.
 - **`docs/architecture/01` describes a config model that no longer exists** — it documents
   `config.ignore` and `config.summarize` (§"Filter resources"), superseded by the tier system.
-- **No `CODE_OF_CONDUCT.md`, no issue templates beyond a single generic `ISSUE_TEMPLATE.md`,
-  no `SECURITY.md`** — all expected of a project inviting contribution.
+- **Community health files shipped.** `SECURITY.md` (scoped to sensitive leakage and report
+  injection), Contributor Covenant 2.1, and three YAML issue forms plus a `config.yml` replacing
+  the legacy `ISSUE_TEMPLATE.md`.
 - **Repo-root clutter committed or present**: `.coverage`, `coverage.xml`, `generated/junit.xml`.
 - **`docs/studies/` will auto-appear in the published mkdocs nav** (no explicit `nav:` in
   `mkdocs.yml`). Decide whether internal studies belong on the public site.
@@ -398,16 +399,16 @@ This is the moat. Prioritise 1.1 and 1.2 — they are what make tf-peek *not* a 
 
 ### P2 — Reach (≈4–5 days)
 
-| # | Action | Addresses |
-| :--- | :--- | :--- |
-| 2.1 | **GitHub Action** — sticky comment, hide-previous, quiet-on-no-changes. Biggest single adoption lever; the Action is how people discover layer-2 tools. | goal |
-| 2.2 | **HTML renderer** — second Jinja2 template, self-contained single file (inline CSS/JS), collapsible tiers, dark/light. Only Terraform Visual occupies this niche and it is not risk-aware. | goal |
-| 2.3 | **stdin support** — `terraform show -json \| tf-peek -` | **M5** — ✅ Done — `changes/add-stdin-plan-support` |
-| 2.4 | **JSON output** — makes tf-peek composable for other tooling | **M3** |
-| 2.5 | Docker image + Homebrew formula — offsets the Python distribution handicap vs Go competitors. The PyPI half of distribution is already solved (§3.6) | §5.3 |
-| 2.6 | `resource_drift` and `change.importing` support | **M1** |
-| 2.7 | `SECURITY.md`, `CODE_OF_CONDUCT.md`, structured issue templates | §4.3 |
-| 2.8 | README rewrite led by a before/after screenshot of a report — the "🚨 above the fold" idea has to be *seen* | adoption |
+| # | Action | Addresses | Status |
+| :--- | :--- | :--- | :--- |
+| 2.1 | **GitHub Action** — sticky comment, hide-previous, quiet-on-no-changes. Biggest single adoption lever; the Action is how people discover layer-2 tools. | goal | ⬜ Not started |
+| 2.2 | **HTML renderer** — second Jinja2 template, self-contained single file (inline CSS/JS), collapsible tiers, dark/light. Only Terraform Visual occupies this niche and it is not risk-aware. | goal | ⬜ Not started |
+| 2.3 | **stdin support** — `terraform show -json \| tf-peek -` | **M5** | ✅ Done — `changes/add-stdin-plan-support` |
+| 2.4 | **JSON output** — makes tf-peek composable for other tooling | **M3** | ⬜ Not started |
+| 2.5 | Docker image + Homebrew formula — offsets the Python distribution handicap vs Go competitors. The PyPI half of distribution is already solved (§3.6) | §5.3 | ⬜ Not started |
+| 2.6 | `resource_drift` and `change.importing` support | **M1** | ⬜ Not started |
+| 2.7 | `SECURITY.md`, `CODE_OF_CONDUCT.md`, structured issue templates | §4.3 | ✅ Done — SECURITY.md, CODE_OF_CONDUCT.md, .github/ISSUE_TEMPLATE/ |
+| 2.8 | README rewrite led by a before/after screenshot of a report — the "🚨 above the fold" idea has to be *seen* | adoption | ✅ Done — README rewritten around docs/assets/report-before-after.png; all README links absolute for PyPI |
 
 ### Deliberately out of scope
 
