@@ -33,3 +33,41 @@ def test_kitchen_sink_report(tmp_path: Path, snapshot: SnapshotAssertion) -> Non
     )
     assert result.exit_code == 0, result.output
     assert output_file.read_text() == snapshot
+
+
+_REPO_ROOT = Path(__file__).parents[2]
+
+
+def test_demo_plan_report(tmp_path: Path, snapshot: SnapshotAssertion) -> None:
+    """Render the README demo plan with the repository's example tier config."""
+    output_file = tmp_path / "report.md"
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            str(_REPO_ROOT / "examples" / "demo-plan.json"),
+            "--config",
+            str(_REPO_ROOT / "config.toml"),
+            "--output",
+            str(output_file),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    rendered = output_file.read_text()
+    assert rendered.startswith("# 🚨 Critical Changes")
+    assert rendered == snapshot
+
+
+def test_demo_plan_gate_exits_three() -> None:
+    """The README's CI-gate claim holds for the shipped demo plan."""
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            str(_REPO_ROOT / "examples" / "demo-plan.json"),
+            "--config",
+            str(_REPO_ROOT / "config.toml"),
+            "--fail-on-critical",
+        ],
+    )
+    assert result.exit_code == 3  # noqa: PLR2004 — critical gate exit code
