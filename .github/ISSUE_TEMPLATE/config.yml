@@ -1,0 +1,9 @@
+---
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://looztra.github.io/tf-peek/
+    about: Tutorial, how-to guides, CLI reference and configuration reference.
+  - name: Report a security vulnerability
+    url: https://github.com/looztra/tf-peek/security/advisories/new
+    about: Report privately through GitHub Security Advisories, never in a public issue.
