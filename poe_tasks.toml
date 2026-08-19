@@ -17,9 +17,11 @@ pyright = [
 "pytest:integration" = "pytest -m integration"
 "ruff:fmt:check" = "ruff format --check"
 "ruff:fmt:run" = "ruff format"
+"ruff:isort" = "ruff check --select I --fix"
 "ruff:lint" = "ruff check"
 "ruff:lint:fix" = "ruff check --fix"
 style = [
+    "ruff:isort",
     "ruff:fmt:run",
 ]
 test = "pytest"
