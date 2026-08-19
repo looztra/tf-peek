@@ -54,5 +54,7 @@ project-agnostic on purpose — anything specific to `tf-peek` belongs below, no
   `tests/integration/__snapshots__/test_golden/test_kitchen_sink_report.md` (syrupy). After an
   intended rendering change, regenerate with `uv run poe pytest:integration --snapshot-update` and
   review the `.md` diff like code.
-- `tests/integration/test_defects.py` carries one `@pytest.mark.xfail(strict=True, ...)` per
-  catalogued defect; delete the marker when the fix lands.
+- `tests/integration/test_defects.py` is the defect ledger for the six issues catalogued in
+  `docs/studies/2026-08-15-capability-and-market-analysis.md §4.1`; its assertions are required
+  passing regressions (D1–D5 are resolved; D6 is an out-of-scope documentation defect), so a
+  failure there means a catalogued defect has come back.
