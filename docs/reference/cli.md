@@ -9,24 +9,27 @@ alternative when the package is installed but its console script is unavailable 
 Preferred:
 
 ```text
-tf-peek [OPTIONS] JSON_PATH
+tf-peek [OPTIONS] JSON_PATH | -
 ```
 
 Supported alternative:
 
 ```text
-python -m tf_peek [OPTIONS] JSON_PATH
+python -m tf_peek [OPTIONS] JSON_PATH | -
 ```
 
 ---
 
 ## Arguments
 
-| Argument    | Required | Description                                     |
-| :---------- | :------: | :---------------------------------------------- |
-| `JSON_PATH` |   Yes    | Path to the Terraform plan JSON file to process |
+| Argument    | Required | Description                                                    |
+| :---------- | :------: | :--------------------------------------------------------------- |
+| `JSON_PATH` |   Yes    | Path to the Terraform plan JSON file to process, or `-` to read it from stdin |
 
-`JSON_PATH` must be a file produced by `terraform show -json <planfile>`.
+`JSON_PATH` must be a file produced by `terraform show -json <planfile>` — or that same output
+piped to stdin when `JSON_PATH` is `-`. `JSON_PATH` is always required; omitting it entirely is a
+usage error (exit `2`), even though `-` is accepted as its value. A file literally named `-` can be
+read by passing `./-`.
 
 ---
 
@@ -122,7 +125,7 @@ observes the non-zero exit and an empty `VER` rather than capturing prose as a v
 | Code | Meaning                                                                                  |
 | ---: | :--------------------------------------------------------------------------------------- |
 |    0 | Success                                                                                  |
-|    1 | Runtime error (invalid JSON, file not found, configuration error, missing metadata)      |
+|    1 | Runtime error (unreadable/missing plan input, malformed or structurally invalid plan JSON, configuration error, missing metadata) — deliberate and tested for both file and stdin plan sources |
 |    2 | Usage error (missing or unexpected arguments, unknown option, malformed positional input) |
 |    3 | Critical gate triggered (`--fail-on-critical`/`--fail-on-critical-on`); the report was still generated |
 
@@ -134,6 +137,12 @@ Print report to terminal:
 
 ```bash
 tf-peek plan.json
+```
+
+Read the plan JSON from stdin instead of a file:
+
+```bash
+terraform show -json plan.tfplan | tf-peek -
 ```
 
 Save report to a file:

@@ -1,12 +1,14 @@
 """Command-line interface for tf-peek."""
 
 import json
+import sys
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _package_version
 from pathlib import Path
 from typing import Any
 
 import typer
+from pydantic import ValidationError
 
 from .actions import Action
 from .config import load_config
@@ -63,9 +65,23 @@ def _gate_triggered(
     return False
 
 
+def _read_plan_json(json_path: str) -> str:
+    """Return plan JSON text for ``json_path``, reading stdin for the ``-`` sentinel.
+
+    Args:
+        json_path: Raw plan JSON path, or the literal ``-`` sentinel to read standard input.
+
+    Returns:
+        The plan JSON text, decoded as UTF-8 regardless of the ambient locale.
+    """
+    if json_path == "-":
+        return sys.stdin.buffer.read().decode("utf-8")
+    return Path(json_path).read_text(encoding="utf-8")
+
+
 @app.command()
 def generate(  # noqa: PLR0913, PLR0917 — typer CLI entrypoint, options map 1:1 to flags
-    json_path: Path = typer.Argument(..., help="JSON plan file"),
+    json_path: str = typer.Argument(..., help="JSON plan file, or '-' to read from stdin"),
     config_file: Path | None = typer.Option(None, "--config", "-c"),
     output_file: Path | None = typer.Option(
         None, "--output", "-o", help="Output file for markdown report (default: stdout)"
@@ -99,8 +115,31 @@ def generate(  # noqa: PLR0913, PLR0917 — typer CLI entrypoint, options map 1:
     """Generate a markdown report from a terraform plan JSON."""
     config = load_config(config_file)
 
-    with json_path.open() as f:
-        plan = TerraformPlan(**json.load(f))
+    try:
+        plan_text = _read_plan_json(json_path)
+        plan_data = json.loads(plan_text)
+        plan = TerraformPlan(**plan_data)
+    except OSError as exc:
+        typer.echo(f"tf-peek: cannot read plan '{json_path}': {exc}", err=True)
+        raise typer.Exit(code=1) from None
+    except UnicodeDecodeError as exc:
+        typer.echo(f"tf-peek: plan is not valid UTF-8: {exc}", err=True)
+        raise typer.Exit(code=1) from None
+    except json.JSONDecodeError as exc:
+        typer.echo(f"tf-peek: plan is not valid JSON: {exc}", err=True)
+        raise typer.Exit(code=1) from None
+    except TypeError:
+        typer.echo(f"tf-peek: plan JSON must be an object, got {type(plan_data).__name__}", err=True)
+        raise typer.Exit(code=1) from None
+    except ValidationError as exc:
+        errors = exc.errors()
+        first = errors[0]
+        loc = ".".join(str(part) for part in first["loc"]) or "<root>"
+        detail = f"{loc}: {first['msg']}"
+        if len(errors) > 1:
+            detail += f" (+{len(errors) - 1} more)"
+        typer.echo(f"tf-peek: plan does not match the expected structure: {detail}", err=True)
+        raise typer.Exit(code=1) from None
 
     data = build_report_data(plan, config, show_sensitive=show_sensitive)
     rendered_content = render_report(data)

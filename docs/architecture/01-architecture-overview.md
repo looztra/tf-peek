@@ -40,7 +40,11 @@ src/tf_peek/
 `tf-peek` follows a linear pipeline:
 
 1. **Load configuration** — reads an optional `peek_config.toml` (or a path supplied via `--config`).
-2. **Parse plan** — deserializes the Terraform plan JSON into typed Pydantic models.
+2. **Parse plan** — deserializes the Terraform plan JSON into typed Pydantic models. The plan is
+   read from either a file (`JSON_PATH`) or stdin (`JSON_PATH` given as `-`), decoded as UTF-8
+   explicitly in both cases so parsing doesn't depend on the ambient process locale. A missing or
+   unreadable file, undecodable bytes, malformed JSON, or JSON that doesn't match the expected
+   structure produces a one-line diagnostic and exit `1`, rather than an uncaught traceback.
 3. **Classify actions** — each `ResourceChange` is mapped to a simplified action:
    `create`, `update`, `delete`, `replace`, or `no-op`. `no-op` and `read` resources are excluded.
 4. **Classify tier** — each remaining resource is matched against the configured `[[resources]]`
