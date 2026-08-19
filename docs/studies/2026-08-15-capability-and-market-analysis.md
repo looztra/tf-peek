@@ -29,9 +29,10 @@ The recommendation is therefore sequenced, not balanced:
 | **P2** | Reach | GitHub Action, HTML renderer, stdin. This is how people find it. |
 
 **Progress since publication** (see §7 for full status per item): P0 is now fully shipped — all
-nine items, including all five verified defects (D1–D6). P1 item 1.1 (`--fail-on-critical`) has also
-shipped. Effort estimates and the "not yet safe for CI" framing below describe the repository state
-at the time of writing (commit `508e5f8`), not the current state.
+nine items, including all five verified defects (D1–D6). P1 item 1.1 (`--fail-on-critical`) has
+also shipped, and so has P2 item 2.3 (stdin support). Effort estimates and the "not yet safe for
+CI" framing below describe the repository state at the time of writing (commit `508e5f8`), not the
+current state.
 
 Estimated effort to a credible 2.0: **P0 ≈ 2–3 focused days, P1 ≈ 4–5 days, P2 ≈ 4–5 days.** The
 codebase is 336 lines of source with 35 passing tests, so the surface area is small and the work is
@@ -237,8 +238,9 @@ Jinja2 indirection makes multi-format cheap; it just hasn't been exercised. Note
 `typer.echo`, so JSON brackets and other report content are not interpreted as console markup or
 wrapped. Stdout and `--output` are covered by byte-parity regression coverage.
 
-**M5 — No stdin.** Competitors support `terraform show -json | tool`. tf-peek requires a file path,
-forcing a temp file in every pipeline.
+**M5 — Stdin support shipped.** `tf-peek -` (and `python -m tf_peek -`) read the plan JSON from
+stdin, matching competitors' `terraform show -json | tool` pattern; `JSON_PATH` remains required,
+so omitting it is still a usage error rather than an implicit stdin read.
 
 **M6 — No shipped presets.** This is the strategic one. The entire value proposition is the tier
 config, yet a new user starts with an **empty** config and therefore gets output strictly worse than
@@ -400,7 +402,7 @@ This is the moat. Prioritise 1.1 and 1.2 — they are what make tf-peek *not* a 
 | :--- | :--- | :--- |
 | 2.1 | **GitHub Action** — sticky comment, hide-previous, quiet-on-no-changes. Biggest single adoption lever; the Action is how people discover layer-2 tools. | goal |
 | 2.2 | **HTML renderer** — second Jinja2 template, self-contained single file (inline CSS/JS), collapsible tiers, dark/light. Only Terraform Visual occupies this niche and it is not risk-aware. | goal |
-| 2.3 | **stdin support** — `terraform show -json \| tf-peek -` | **M5** |
+| 2.3 | **stdin support** — `terraform show -json \| tf-peek -` | **M5** — ✅ Done — `changes/add-stdin-plan-support` |
 | 2.4 | **JSON output** — makes tf-peek composable for other tooling | **M3** |
 | 2.5 | Docker image + Homebrew formula — offsets the Python distribution handicap vs Go competitors. The PyPI half of distribution is already solved (§3.6) | §5.3 |
 | 2.6 | `resource_drift` and `change.importing` support | **M1** |
