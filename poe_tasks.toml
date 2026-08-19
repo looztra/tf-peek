@@ -21,8 +21,8 @@ pyright = [
 "ruff:lint" = "ruff check"
 "ruff:lint:fix" = "ruff check --fix"
 style = [
-    "ruff:fmt:run",
     "ruff:isort",
+    "ruff:fmt:run",
 ]
 test = "pytest"
 "test:cov" = [

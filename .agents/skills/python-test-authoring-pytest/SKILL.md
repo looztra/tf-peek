@@ -3,6 +3,8 @@ name: python-test-authoring-pytest
 description: Write and update tests with this repository family's pytest conventions (tests/ mirror layout, tuple parametrize with ids, conftest fixtures, pytest-mock, strict markers, snapshot goldens). Use when creating or editing tests or fixtures.
 ---
 
+# Pytest test authoring
+
 Use this skill when authoring or refactoring anything under `tests/`.
 
 ## Workflow
@@ -28,5 +30,6 @@ Use this skill when authoring or refactoring anything under `tests/`.
    suite can auto-apply its marker from a `pytest_collection_modifyitems` hook in its `conftest.py`.
 10. When the project keeps committed snapshot/golden files, regenerate them with the project's
     snapshot-update command and review the resulting diff as code before committing.
+11. Before finishing, run the `python-quality-gates` skill.
 
 For the full rule list, read `references/pytest-rules.md`.

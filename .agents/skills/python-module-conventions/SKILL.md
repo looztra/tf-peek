@@ -3,6 +3,8 @@ name: python-module-conventions
 description: Apply this repository family's Python implementation conventions (src layout, Google docstrings, full typing, Ruff-ALL compliance). Use when creating or editing Python production code or packages.
 ---
 
+# Python module conventions
+
 Use this skill when writing or editing Python production code.
 
 ## Workflow
@@ -19,8 +21,9 @@ Use this skill when writing or editing Python production code.
 4. Type-hint every parameter and return value, including `-> None` and special methods (`ANN204`).
    Use builtin generics and PEP 604 unions (`dict[str, Any] | None`); do not add
    `from __future__ import annotations`.
-5. Pass file encodings explicitly (`Path.read_text(encoding="utf-8")`) — Ruff `PLW1514`/`W1514` are
-   active under `select = ["ALL"]`.
+5. Pass file encodings explicitly (`Path.read_text(encoding="utf-8")`) — Ruff `PLW1514` is preview-only
+   and pylint's `unspecified-encoding` (W1514) is typically disabled, so no linter enforces this; it
+   is on you.
 6. Use f-strings for formatting, except inside logging calls (`G004`/`logging-fstring-interpolation`).
 7. Match the surrounding module's I/O and error idiom: reuse the project's existing output and
    exit-code mechanism instead of introducing `print`, a new logger, or `sys.exit`.

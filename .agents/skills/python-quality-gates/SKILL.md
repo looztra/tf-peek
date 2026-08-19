@@ -3,6 +3,8 @@ name: python-quality-gates
 description: Run and interpret this repository family's mandatory checks. Use before handing back any change to execute style, lint, type-check, tests and pre-commit hooks in the expected order via uv and poe.
 ---
 
+# Python quality gates
+
 Use this skill for the final verification pass on any change.
 
 ## Required commands
@@ -20,8 +22,9 @@ Conditional:
 - Coverage or CI parity: `uv run poe pytest:cov` (`--cov src --cov-branch`, writes the JUnit XML).
 - A marked subset only (e.g. an end-to-end suite): the matching `poe` task, e.g.
   `uv run poe pytest:integration`.
-- Markdown, YAML, TOML or shell touched: `uv run pre-commit run --all-files`, or one hook, e.g.
-  `uv run pre-commit run --all-files markdownlint-cli2`.
+- Markdown, YAML, TOML or shell touched: `uvx pre-commit run --all-files`, or one hook, e.g.
+  `uvx pre-commit run --all-files markdownlint-cli2` (pre-commit is not a project dependency, so
+  `uv run pre-commit …` only works when pre-commit is on `PATH` outside the uv environment).
 - Docs sources or `mkdocs.yml` touched: `make build-docs`.
 
 Confirm the task names for the current repository with `uv run poe --help` or by reading

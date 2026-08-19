@@ -3,13 +3,16 @@ name: commit-and-pr-conventions
 description: Apply this repository family's commit message and pull request rules (Conventional Commits with a mandatory scope, PR template compliance, issue linking). Use when writing commits, choosing a scope, naming a PR title, or filling a PR description.
 ---
 
+# Commit and PR conventions
+
 Use this skill whenever you produce a commit message or a pull request.
 
 ## Commit and PR title format
 
 `type(scope): description` — the scope is **mandatory**. CI enforces it on the PR title with
-`amannn/action-semantic-pull-request` (`requireScope: true`); a missing or unknown scope fails the
-check and posts a bot comment.
+`amannn/action-semantic-pull-request` (`requireScope: true`); a missing scope fails the check and
+posts a bot comment. No scope allow-list is configured, so a wrong-but-present scope passes CI —
+picking a meaningful one is on you.
 
 - Types: `feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
 - Scope: the component or area touched. Pick an existing one — list them with

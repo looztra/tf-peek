@@ -30,7 +30,8 @@
 - Include the observed output in the assertion message for process-like assertions:
   `assert result.exit_code == 0, result.output`.
 - `pytest.raises(Error, match="…")` for exception validation.
-- `pytest-unordered` is available for order-insensitive collection comparisons.
+- `pytest-unordered` (when the project depends on it) is useful for order-insensitive collection
+  comparisons.
 - `HTTPStatus` from `http` rather than bare status integers when asserting HTTP codes.
 
 ## Markers and suites
@@ -53,11 +54,12 @@
 - `ruff_defaults.toml` per-file ignores for tests: `INP001`, `S101`, `D100`, `D104`. Everything else
   still applies — test functions need docstrings, magic numbers still trip `PLR2004` (name a
   constant or add `# noqa: PLR2004 — reason`), imports stay at top level (`PLC0415`).
-- Use a `faker`-based fixture instead of hardcoding credential-looking literals (`S105`/`S106`).
+- Prefer a `faker`-based fixture (where `faker` is available) instead of hardcoding
+  credential-looking literals (`S105`/`S106`).
 
 ## Coverage expectations
 
 - The coverage task runs `--cov src --cov-branch` and writes a JUnit XML under `generated/`; CI
-  uploads both to Codecov.
+  typically uploads both to the project's coverage service (Codecov in this template family).
 - Every new branch in `src/` needs at least one test that fails without the change.
 - Cover empty input, invalid input types, and hostile/edge inputs, not only the happy path.
