@@ -63,9 +63,12 @@ The collapsed summary line SHALL present at most a bounded number of forcing pat
 - **THEN** the collapsed summary line indicates that further paths exist
 - **THEN** the expanded detail block lists every forcing path
 
-### Requirement: Stated change reasons explain what forcing paths cannot
+### Requirement: Stated change reasons explain what forcing paths do not
 
-Terraform omits forcing paths when a replacement was not caused by an attribute, and states a reason instead. When a change states a reason and no forcing paths, the report SHALL present that reason as an explanation in the resource's detail block and on its collapsed summary line. Reasons SHALL be phrased in prose rather than shown as raw reason codes.
+When a resource change states a reason, the report SHALL phrase known reasons as neutral descriptions
+of the mechanism Terraform reported. The report SHALL NOT infer whether the change was expected,
+intentional, accidental or severe. A reason MAY appear without forcing paths, or alongside paths when
+it communicates information those paths do not.
 
 #### Scenario: Resource is replaced because it is tainted
 
@@ -78,14 +81,28 @@ Terraform omits forcing paths when a replacement was not caused by an attribute,
 - **WHEN** a replaced resource states the reason `replace_by_request` and no forcing paths
 - **THEN** its explanation states that the replacement was explicitly requested when the plan was created
 
-#### Scenario: Resource is deleted because it left the configuration
+#### Scenario: Resource is replaced because of configured triggers
+
+- **WHEN** a replaced resource states the reason `replace_by_triggers` and no forcing paths
+- **THEN** its explanation states that configured replacement triggers selected the replacement
+
+#### Scenario: Resource has no corresponding configuration
 
 - **WHEN** a deleted resource states the reason `delete_because_no_resource_config`
-- **THEN** its explanation states that the resource is no longer in the configuration
+- **THEN** its explanation states that Terraform found no corresponding resource configuration
+- **THEN** the explanation makes no claim about whether the removal was intentional
 
-### Requirement: Forcing paths take precedence over a redundant stated reason
+#### Scenario: Resource for_each key no longer matches
 
-When a change states both forcing paths and a reason that those paths already imply, the report SHALL present only the forcing paths. Presenting both restates one fact twice and dilutes the section whose purpose is to carry only what matters.
+- **WHEN** a deleted resource states the reason `delete_because_each_key`
+- **THEN** its explanation states that the resource's `for_each` key no longer matches
+- **THEN** the explanation makes no claim about whether the deletion was accidental
+
+### Requirement: Forcing paths suppress only a redundant provider reason
+
+When a change states forcing paths and the reason `replace_because_cannot_update`, the report SHALL
+present only the forcing paths because they already identify what the provider cannot update in place.
+Any other recognized or unrecognized reason SHALL remain visible alongside forcing paths.
 
 #### Scenario: Change states both paths and a provider-cannot-update reason
 
@@ -93,16 +110,30 @@ When a change states both forcing paths and a reason that those paths already im
 - **THEN** the report presents the forcing path
 - **THEN** the report does not additionally present the provider-cannot-update reason
 
+#### Scenario: Change states paths and a non-redundant reason
+
+- **WHEN** a replaced resource states a forcing path and a reason other than `replace_because_cannot_update`
+- **THEN** the report presents the forcing path
+- **THEN** the report also presents the stated reason
+
 ### Requirement: Unrecognized change reasons are surfaced rather than dropped or rejected
 
-Terraform documents change reasons as display hints whose set may grow. An unrecognized reason SHALL NOT prevent the plan from being read and SHALL NOT be silently discarded: the report SHALL render successfully and present the reason code as reported by Terraform, marked as such.
+Terraform documents change reasons as display hints whose set may grow. An unrecognized reason SHALL
+NOT prevent the plan from being read and SHALL NOT be silently discarded: the report SHALL render
+successfully and present the reason code as reported by Terraform, marked as such. This requirement
+also applies when forcing paths are present.
 
 #### Scenario: Plan states a reason code this version does not recognize
 
-- **WHEN** a deleted resource states a reason code that is not one of the documented codes
+- **WHEN** a deleted resource states a reason code that is not one of the recognized codes
 - **THEN** the report renders successfully
 - **THEN** the resource's explanation contains the reason code as reported by Terraform
 - **THEN** the explanation makes clear that the code is passed through rather than interpreted
+
+#### Scenario: Unknown replacement reason accompanies forcing paths
+
+- **WHEN** a replaced resource states forcing paths and an unrecognized reason code
+- **THEN** the report presents both the forcing paths and the reason code as reported by Terraform
 
 ### Requirement: A change with no stated cause receives no explanation
 
@@ -113,38 +144,6 @@ When a change states neither forcing paths nor a reason, the report SHALL presen
 - **WHEN** a replaced resource states no forcing paths and no reason
 - **THEN** its detail block contains no explanation of why it is being replaced
 - **THEN** the report renders successfully and the resource's attribute diff is unaffected
-
-### Requirement: Deletions caused by addressing changes are distinguished from intentional removals
-
-Terraform distinguishes a resource deleted because it left the configuration from one deleted because its address no longer resolves — a `count` index out of range, a `for_each` key that no longer matches, an undeclared containing module, or a changed repetition mode. Those four causes are commonly unintended, so the report SHALL mark them with a distinct visual marker that an intentional removal does not receive.
-
-#### Scenario: Deletion caused by a for_each key change
-
-- **WHEN** a deleted resource states the reason `delete_because_each_key`
-- **THEN** its detail block and collapsed summary line carry the distinct marker
-- **THEN** its explanation states that the resource's `for_each` key no longer matches
-
-#### Scenario: Intentional removal carries no marker
-
-- **WHEN** a deleted resource states the reason `delete_because_no_resource_config`
-- **THEN** its explanation is present
-- **THEN** it does not carry the distinct marker
-
-#### Scenario: Deletion caused by a count reduction
-
-- **WHEN** a deleted resource states the reason `delete_because_count_index`
-- **THEN** it carries the distinct marker
-
-### Requirement: The unexpected-deletion marker can be disabled without losing the explanation
-
-When the report configuration disables the unexpected-deletion marker, the report SHALL omit the marker while still presenting the underlying explanation, so disabling a visual emphasis never suppresses information.
-
-#### Scenario: Marker disabled by configuration
-
-- **WHEN** the report configuration disables the unexpected-deletion marker
-- **WHEN** a deleted resource states the reason `delete_because_each_key`
-- **THEN** the resource carries no distinct marker
-- **THEN** its explanation still states that the `for_each` key no longer matches
 
 ### Requirement: Replaced resources state which replacement mechanism Terraform will use
 
