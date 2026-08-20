@@ -33,14 +33,22 @@ uv python install "$(cat "$project_dir/.python-version")"
 # `pre-commit run --all-files` needs pre-commit itself plus the system
 # binaries a few hooks shell out to (shellcheck, shfmt, editorconfig-checker
 # aka `ec`). CI gets all of these from mise (jdx/mise-action), which reads
-# .mise.toml as the single source of truth for versions. mise itself isn't
-# usable here: its installer (mise.run) and most of its tool backends fetch
-# prebuilt binaries straight from GitHub Releases, and that path is blocked
-# by this sandbox's network policy -- only pypi.org/files.pythonhosted.org,
-# registry.npmjs.org and the Go module proxy are reachable without going
-# through it. So each tool below is installed from one of those reachable
-# backends instead, with the version read out of .mise.toml so these pins
-# can't drift from what CI actually uses.
+# .mise.toml as the single source of truth for versions.
+#
+# mise itself may or may not be reachable from a given session: its
+# installer (mise.run) and most of its tool backends fetch prebuilt
+# binaries straight from GitHub Releases, and that path has been blocked by
+# this sandbox's network policy in some sessions (only
+# pypi.org/files.pythonhosted.org, registry.npmjs.org and the Go module
+# proxy were reachable there). That policy isn't guaranteed to be the same
+# everywhere this hook runs, so probe it live: use mise directly when
+# reachable (matches CI exactly), and only fall back to installing
+# equivalent versions from the always-reachable backends (PyPI wheels, Go
+# module proxy) when it isn't.
+#
+# NOTE: the mise branch below could not be exercised while writing this
+# hook -- mise.run was blocked in that sandbox -- so it's unverified. If it
+# misbehaves somewhere mise.run *is* reachable, tighten it up or report it.
 mise_tool_version() {
   python3 -c "
 import sys, tomllib
@@ -50,16 +58,62 @@ print(v['version'] if isinstance(v, dict) else v)
 " "$1"
 }
 
-uv tool install --quiet "pre-commit==$(mise_tool_version 'pipx:pre-commit')" --with pre-commit-uv
-# The shellcheck-py package version is the upstream ShellCheck version plus a
-# packaging suffix (e.g. 0.11.0.1 for ShellCheck 0.11.x); .mise.toml only
-# pins the ShellCheck minor version, so match on that prefix.
-uv tool install --quiet "shellcheck-py==$(mise_tool_version shellcheck).*"
+install_toolchain_via_mise() {
+  if ! curl -fsS --max-time 5 -o /dev/null https://mise.run; then
+    return 1
+  fi
+  if ! curl -fsS https://mise.run | sh; then
+    return 1
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+  if ! command -v mise >/dev/null 2>&1; then
+    return 1
+  fi
 
-export GOBIN="$HOME/.local/bin"
-go install "mvdan.cc/sh/v3/cmd/shfmt@v$(mise_tool_version shfmt)"
-# .mise.toml only pins the editorconfig-checker major version; `go install`
-# has no wildcard match, so track latest within that major (the import path
-# is already major-version-locked to v3).
-go install "github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@latest"
-ln -sf "$GOBIN/editorconfig-checker" "$GOBIN/ec"
+  # Mirrors CI's MISE_TRUSTED_CONFIG_PATHS so `mise install` doesn't stop to
+  # ask for an interactive trust confirmation on this repo's .mise.toml.
+  export MISE_TRUSTED_CONFIG_PATHS="$project_dir"
+  if ! (cd "$project_dir" && mise install); then
+    return 1
+  fi
+
+  mise_shims="$(cd "$project_dir" && mise where shims 2>/dev/null)"
+  if [ -z "$mise_shims" ]; then
+    return 1
+  fi
+  export PATH="$mise_shims:$PATH"
+  # Persist for the rest of the session, not just this hook invocation.
+  if [ -z "${CLAUDE_ENV_FILE:-}" ]; then
+    return 1
+  fi
+  echo "export PATH=\"$mise_shims:\$PATH\"" >>"$CLAUDE_ENV_FILE"
+
+  for tool in pre-commit shellcheck shfmt ec; do
+    if ! command -v "$tool" >/dev/null 2>&1; then
+      return 1
+    fi
+  done
+}
+
+install_toolchain_directly() {
+  uv tool install --quiet "pre-commit==$(mise_tool_version 'pipx:pre-commit')" --with pre-commit-uv
+  # The shellcheck-py package version is the upstream ShellCheck version plus
+  # a packaging suffix (e.g. 0.11.0.1 for ShellCheck 0.11.x); .mise.toml
+  # only pins the ShellCheck minor version, so match on that prefix.
+  uv tool install --quiet "shellcheck-py==$(mise_tool_version shellcheck).*"
+
+  export GOBIN="$HOME/.local/bin"
+  go install "mvdan.cc/sh/v3/cmd/shfmt@v$(mise_tool_version shfmt)"
+  # .mise.toml only pins the editorconfig-checker major version; `go
+  # install` has no wildcard match, so track latest within that major (the
+  # import path is already major-version-locked to v3).
+  go install "github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@latest"
+  ln -sf "$GOBIN/editorconfig-checker" "$GOBIN/ec"
+}
+
+if install_toolchain_via_mise; then
+  echo "pre-commit toolchain: installed via mise"
+else
+  echo "pre-commit toolchain: mise unreachable/unavailable, installing directly (PyPI + Go module proxy)"
+  install_toolchain_directly
+fi
