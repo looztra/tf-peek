@@ -74,7 +74,7 @@ tier system or growing a policy DSL.
 **Not** in scope: any effect on tiering, `critical_on`, `--fail-on-critical`, or exit codes. This
 change is rendering-only. Reason-based escalation
 (`always_critical_when_reason = ["delete_because_each_key"]`) is an attractive follow-up and is
-explicitly deferred — `2026-08-18-fail-on-critical-gate/design.md` rules out a second policy
+explicitly deferred — `archive/2026-08-18-fail-on-critical-gate/design.md` rules out a second policy
 language, and the gate shipped two days ago.
 
 No **BREAKING** changes: additive plan fields, additive config key, additive report content.

@@ -38,7 +38,7 @@ See `proposal.md — Why` for motivation. The constraints that shape the approac
 - Splitting `replace` into two actions in `ACTION_ORDER` / the `Action` enum. See the *Replacement
   mechanism* decision for why this is not merely deferred but rejected.
 - Any reason- or path-driven tier escalation. `always_critical_when_reason` is a genuinely good
-  follow-up, but `2026-08-18-fail-on-critical-gate/design.md:29-31` rules out a second policy
+  follow-up, but `archive/2026-08-18-fail-on-critical-gate/design.md:29-31` rules out a second policy
   language and the gate is two days old; perturbing its semantics now costs the clean story for a
   nuance.
 - Applying the causation renderer to `resource_drift` (study 2.6). `resource_drift` reuses the
@@ -169,7 +169,7 @@ reader sees is what was ordered.
 **`[report]` config table, config-only, with strict keys.** The badge opt-out is a repo-level
 report-shape preference — the same family as tiers — not a per-invocation override, which is what
 every existing CLI flag is (`--show-sensitive`, `--fail-on-critical-on`). A flag would also add an
-eighth parameter to `generate()`, and `2026-08-18-fail-on-critical-gate/design.md:122-128` already
+eighth parameter to `generate()`, and `archive/2026-08-18-fail-on-critical-gate/design.md:122-128` already
 records "a tenth option ⇒ revisit the CLI shape" as a standing signal. So: config-only. The new
 `ReportOptions` model sets `extra="forbid"`, because an opt-out that silently fails to opt out is
 worse than no opt-out — `highlight_unexpected_delete` (missing `s`) must be an error, not a no-op.
