@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.0](https://github.com/looztra/tf-peek/compare/v1.2.0...v1.3.0) (2026-08-20)
+
+
+### Features
+
+* **hooks:** install mise-pinned devtools via mise shims ([#114](https://github.com/looztra/tf-peek/issues/114)) ([7794c75](https://github.com/looztra/tf-peek/commit/7794c755f908049588164cb90dd9e200fb56625a))
+
+
+### Bug Fixes
+
+* **docs:** enable mermaid diagram rendering in mkdocs ([#112](https://github.com/looztra/tf-peek/issues/112)) ([35744b0](https://github.com/looztra/tf-peek/commit/35744b0c5405da1ccf3448906e6191bce6d3113a))
+
 ## [1.2.0](https://github.com/looztra/tf-peek/compare/v1.1.0...v1.2.0) (2026-08-19)
 
 
