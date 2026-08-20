@@ -99,5 +99,6 @@ nav:
       - Configuration: reference/configuration.md
   - Tutorial:
       - First Report: tutorial/first-report.md
+  - Changelog: changelog.md
 watch:
   - src
