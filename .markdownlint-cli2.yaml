@@ -5,6 +5,7 @@ globs:
   - '!**/.tox/**/*.md'
   - '!**/.pytest_cache'
   - '!CHANGELOG.md'
+  - '!docs/changelog.md'
   - '!generated/**'
   - '!openspec/**/*.md'
   - '!.opencode/**/*.md'
