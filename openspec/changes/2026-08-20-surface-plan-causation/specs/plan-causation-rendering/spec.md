@@ -1,0 +1,209 @@
+## Purpose
+
+Ensures the report explains its own verdicts: when a resource is being replaced or deleted, the reader learns why Terraform decided that, using only what the plan states and never an inferred reason.
+
+## ADDED Requirements
+
+### Requirement: Replacements name the attributes that forced them
+
+When a replaced resource's plan change states one or more replacement-forcing attribute paths, the report SHALL present those paths both in the resource's detail block and on the block's collapsed summary line, so a reader who never expands the block still learns why the resource is being replaced.
+
+#### Scenario: Nested attribute forces a replacement
+
+- **WHEN** a replaced resource's change states a single forcing path of `settings`, index `0`, `tier`
+- **THEN** its collapsed summary line names that attribute path
+- **THEN** its expanded detail block names that attribute path
+
+#### Scenario: Several attributes force one replacement
+
+- **WHEN** a replaced resource's change states two distinct forcing paths
+- **THEN** its detail block names both paths
+
+#### Scenario: Non-replace changes state no forcing paths
+
+- **WHEN** a resource is being created, updated or deleted
+- **THEN** its detail block contains no replacement-forcing attribute path
+
+### Requirement: Forcing paths render in Terraform attribute-path notation
+
+A rendered forcing path SHALL use the attribute-path notation a Terraform user reads in human-readable plan output: a numeric step SHALL render as a bracketed index, a step whose name is a valid identifier SHALL render as a dotted name, and any other step SHALL render as a bracketed quoted subscript. The first step SHALL NOT be preceded by a separator.
+
+#### Scenario: Path mixes attribute names and a list index
+
+- **WHEN** a forcing path consists of `settings`, index `0`, `tier`
+- **THEN** it renders as `settings[0].tier`
+
+#### Scenario: Path step is not a valid identifier
+
+- **WHEN** a forcing path consists of `labels`, `kubernetes.io/role`
+- **THEN** the second step renders as a bracketed quoted subscript rather than a dotted name
+- **THEN** the rendered path is unambiguous about where the key begins and ends
+
+### Requirement: Forcing paths are ordered and de-duplicated
+
+Rendered forcing paths SHALL appear in ascending lexical order of their rendered form, and repeated paths SHALL appear once. This holds regardless of the order or multiplicity in which the plan states them, so the same plan always produces the same report bytes.
+
+#### Scenario: Plan states paths out of order
+
+- **WHEN** a replaced resource's change states forcing paths in non-lexical order
+- **THEN** the report lists them in ascending lexical order of their rendered form
+
+#### Scenario: Plan states the same path twice
+
+- **WHEN** a replaced resource's change states the same forcing path more than once
+- **THEN** the report lists that path exactly once
+
+### Requirement: The collapsed summary line carries a bounded number of forcing paths
+
+The collapsed summary line SHALL present at most a bounded number of forcing paths and, when it presents fewer than the total, SHALL indicate that further paths exist. The complete list SHALL always be present in the expanded detail block, so the bound never withholds information.
+
+#### Scenario: More forcing paths than the summary line presents
+
+- **WHEN** a replaced resource states more forcing paths than the collapsed summary line presents
+- **THEN** the collapsed summary line indicates that further paths exist
+- **THEN** the expanded detail block lists every forcing path
+
+### Requirement: Stated change reasons explain what forcing paths cannot
+
+Terraform omits forcing paths when a replacement was not caused by an attribute, and states a reason instead. When a change states a reason and no forcing paths, the report SHALL present that reason as an explanation in the resource's detail block and on its collapsed summary line. Reasons SHALL be phrased in prose rather than shown as raw reason codes.
+
+#### Scenario: Resource is replaced because it is tainted
+
+- **WHEN** a replaced resource states the reason `replace_because_tainted` and no forcing paths
+- **THEN** its collapsed summary line explains that the resource is tainted
+- **THEN** the explanation is prose, not the raw reason code
+
+#### Scenario: Resource is replaced because it was requested
+
+- **WHEN** a replaced resource states the reason `replace_by_request` and no forcing paths
+- **THEN** its explanation states that the replacement was explicitly requested when the plan was created
+
+#### Scenario: Resource is deleted because it left the configuration
+
+- **WHEN** a deleted resource states the reason `delete_because_no_resource_config`
+- **THEN** its explanation states that the resource is no longer in the configuration
+
+### Requirement: Forcing paths take precedence over a redundant stated reason
+
+When a change states both forcing paths and a reason that those paths already imply, the report SHALL present only the forcing paths. Presenting both restates one fact twice and dilutes the section whose purpose is to carry only what matters.
+
+#### Scenario: Change states both paths and a provider-cannot-update reason
+
+- **WHEN** a replaced resource states a forcing path and the reason `replace_because_cannot_update`
+- **THEN** the report presents the forcing path
+- **THEN** the report does not additionally present the provider-cannot-update reason
+
+### Requirement: Unrecognized change reasons are surfaced rather than dropped or rejected
+
+Terraform documents change reasons as display hints whose set may grow. An unrecognized reason SHALL NOT prevent the plan from being read and SHALL NOT be silently discarded: the report SHALL render successfully and present the reason code as reported by Terraform, marked as such.
+
+#### Scenario: Plan states a reason code this version does not recognize
+
+- **WHEN** a deleted resource states a reason code that is not one of the documented codes
+- **THEN** the report renders successfully
+- **THEN** the resource's explanation contains the reason code as reported by Terraform
+- **THEN** the explanation makes clear that the code is passed through rather than interpreted
+
+### Requirement: A change with no stated cause receives no explanation
+
+When a change states neither forcing paths nor a reason, the report SHALL present no explanation for it. The report SHALL NOT infer, guess or interpolate a cause.
+
+#### Scenario: Replacement states neither paths nor a reason
+
+- **WHEN** a replaced resource states no forcing paths and no reason
+- **THEN** its detail block contains no explanation of why it is being replaced
+- **THEN** the report renders successfully and the resource's attribute diff is unaffected
+
+### Requirement: Deletions caused by addressing changes are distinguished from intentional removals
+
+Terraform distinguishes a resource deleted because it left the configuration from one deleted because its address no longer resolves — a `count` index out of range, a `for_each` key that no longer matches, an undeclared containing module, or a changed repetition mode. Those four causes are commonly unintended, so the report SHALL mark them with a distinct visual marker that an intentional removal does not receive.
+
+#### Scenario: Deletion caused by a for_each key change
+
+- **WHEN** a deleted resource states the reason `delete_because_each_key`
+- **THEN** its detail block and collapsed summary line carry the distinct marker
+- **THEN** its explanation states that the resource's `for_each` key no longer matches
+
+#### Scenario: Intentional removal carries no marker
+
+- **WHEN** a deleted resource states the reason `delete_because_no_resource_config`
+- **THEN** its explanation is present
+- **THEN** it does not carry the distinct marker
+
+#### Scenario: Deletion caused by a count reduction
+
+- **WHEN** a deleted resource states the reason `delete_because_count_index`
+- **THEN** it carries the distinct marker
+
+### Requirement: The unexpected-deletion marker can be disabled without losing the explanation
+
+When the report configuration disables the unexpected-deletion marker, the report SHALL omit the marker while still presenting the underlying explanation, so disabling a visual emphasis never suppresses information.
+
+#### Scenario: Marker disabled by configuration
+
+- **WHEN** the report configuration disables the unexpected-deletion marker
+- **WHEN** a deleted resource states the reason `delete_because_each_key`
+- **THEN** the resource carries no distinct marker
+- **THEN** its explanation still states that the `for_each` key no longer matches
+
+### Requirement: Replaced resources state which replacement mechanism Terraform will use
+
+A replacement either destroys the existing object before creating its replacement or creates the replacement first. The report SHALL state which mechanism applies in a replaced resource's detail block. The statement SHALL describe the mechanism only and SHALL NOT assert a consequence such as downtime, because the consequence depends on the resource and is not knowable from the plan.
+
+#### Scenario: Replacement destroys before creating
+
+- **WHEN** a replaced resource's change lists its delete action before its create action
+- **THEN** its detail block states that the existing object is destroyed before its replacement is created
+- **THEN** the statement asserts no consequence such as downtime or data loss
+
+#### Scenario: Replacement creates before destroying
+
+- **WHEN** a replaced resource's change lists its create action before its delete action
+- **THEN** its detail block states that the replacement is created before the existing object is destroyed
+
+#### Scenario: Mechanism does not change how the action is classified or counted
+
+- **WHEN** two replaced resources use opposite replacement mechanisms
+- **THEN** both are classified as the `replace` action
+- **THEN** both are counted in the same summary and resource-type table rows as before
+
+#### Scenario: Mechanism is absent from the collapsed summary line
+
+- **WHEN** a replaced resource is rendered
+- **THEN** its collapsed summary line does not state the replacement mechanism
+
+### Requirement: Explanations survive suppressed value detail
+
+A resource whose rule suppresses attribute value detail SHALL still receive its explanation, its forcing paths and its replacement mechanism. Suppressing detail withholds attribute *values*; a forcing path is an attribute name and a reason is plan metadata, so neither is withheld.
+
+#### Scenario: Summarized resource is being replaced
+
+- **WHEN** a resource whose rule sets value detail to summary is being replaced and states a forcing path
+- **THEN** its detail block presents no attribute before/after values
+- **THEN** its detail block presents the forcing path and the replacement mechanism
+
+### Requirement: Explanations cannot corrupt report structure or inject markup
+
+An attribute path can contain a map key holding arbitrary text. Rendered explanations and paths SHALL NOT be able to add a Markdown table column, break a table row across physical lines, close a code span, or introduce markup into the collapsed summary line — in every context where the report presents them.
+
+#### Scenario: Path contains a pipe and a line break
+
+- **WHEN** a forcing path contains a map key holding both a pipe character and a line feed
+- **THEN** the detail block containing it remains structurally intact, with every table row on one physical line and a consistent number of cell delimiters
+- **THEN** the collapsed summary line remains a single line
+
+#### Scenario: Path contains markup and code-span characters
+
+- **WHEN** a forcing path contains a map key holding a backtick and text resembling an HTML tag
+- **THEN** the collapsed summary line presents that text as literal content rather than as markup
+- **THEN** no code span opened by the report is closed by the key's content
+
+### Requirement: Explanations do not weaken sensitive-value protection
+
+A forcing path may name an attribute whose value the report masks. The report SHALL present the path — an attribute name is not its value, and Terraform's own output likewise names a forcing attribute beside a redacted value — while continuing to mask the value.
+
+#### Scenario: Forcing path names a sensitive attribute
+
+- **WHEN** a replaced resource states a forcing path naming an attribute marked sensitive
+- **THEN** the report presents the forcing path
+- **THEN** that attribute's before and after values remain masked
