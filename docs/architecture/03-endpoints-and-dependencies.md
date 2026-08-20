@@ -20,7 +20,7 @@ flowchart TD
     A --> C[Read & parse\nTerraform plan JSON]
     B --> D[Classify actions\ncreate / update / delete / replace\nno-op / read excluded]
     C --> D
-    D --> E[Classify tier\nsilent / normal / critical\nvia [[resources]] rules]
+    D --> E["Classify tier\nsilent / normal / critical\nvia [[resources]] rules"]
     E --> F[Compute attribute diffs\nbefore vs after\n+ resolve nested after_unknown\nskip silent and summary]
     F --> F2[Mask sensitive attributes\nunless --show-sensitive]
     F2 --> F3[Format cells\nJSON + Markdown escaping]
