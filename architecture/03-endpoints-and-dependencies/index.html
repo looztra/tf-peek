@@ -1091,45 +1091,43 @@ command entry point and the flow of data through the system.</p>
 <p>The full option surface (<code>--config</code>, <code>--output</code>, <code>--show-sensitive</code>, <code>--version</code>, exit codes,
 and example invocations) is documented in the <a href="../../reference/cli/">CLI Reference</a>.</p>
 <h2 id="data-flow-diagram">Data Flow Diagram<a class="headerlink" href="#data-flow-diagram" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>flowchart TD
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    A([User: tf-peek]) --&gt; B[Load PeekConfig\nfrom peek_config.toml]
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    A --&gt; C[Read &amp; parse\nTerraform plan JSON]
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    B --&gt; D[Classify actions\ncreate / update / delete / replace\nno-op / read excluded]
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    C --&gt; D
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    D --&gt; E[Classify tier\nsilent / normal / critical\nvia [[resources]] rules]
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    E --&gt; F[Compute attribute diffs\nbefore vs after\n+ resolve nested after_unknown\nskip silent and summary]
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    F --&gt; F2[Mask sensitive attributes\nunless --show-sensitive]
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    F2 --&gt; F3[Format cells\nJSON + Markdown escaping]
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    F3 --&gt; G[Render Jinja2 template\nreport.md.j2]
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    G --&gt; H{output_file?}
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    H -- yes --&gt; I[(Write Markdown file\nUTF-8 / LF)]
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    H -- no --&gt; J[Emit Markdown literally via typer.echo]
-</span></code></pre></div>
+<pre class="mermaid"><code>flowchart TD
+    A([User: tf-peek]) --&gt; B[Load PeekConfig\nfrom peek_config.toml]
+    A --&gt; C[Read &amp; parse\nTerraform plan JSON]
+    B --&gt; D[Classify actions\ncreate / update / delete / replace\nno-op / read excluded]
+    C --&gt; D
+    D --&gt; E[Classify tier\nsilent / normal / critical\nvia [[resources]] rules]
+    E --&gt; F[Compute attribute diffs\nbefore vs after\n+ resolve nested after_unknown\nskip silent and summary]
+    F --&gt; F2[Mask sensitive attributes\nunless --show-sensitive]
+    F2 --&gt; F3[Format cells\nJSON + Markdown escaping]
+    F3 --&gt; G[Render Jinja2 template\nreport.md.j2]
+    G --&gt; H{output_file?}
+    H -- yes --&gt; I[(Write Markdown file\nUTF-8 / LF)]
+    H -- no --&gt; J[Emit Markdown literally via typer.echo]</code></pre>
 <h2 id="internal-module-dependencies">Internal Module Dependencies<a class="headerlink" href="#internal-module-dependencies" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>flowchart LR
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    module_entry[&quot;__main__.py\n(module entrypoint)&quot;]
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    cli[&quot;cli.py\n(CLI + orchestration)&quot;]
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    report[&quot;report.py\n(report aggregation + rendering)&quot;]
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    actions[&quot;actions.py\n(action vocabulary)&quot;]
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    diff[&quot;diff.py\n(semantic diffs)&quot;]
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    formatting[&quot;formatting.py\n(Markdown cell formatting)&quot;]
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    models[&quot;models.py\n(Pydantic models)&quot;]
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    config[&quot;config.py\n(configuration)&quot;]
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    tmpl[&quot;templates/report.md.j2\n(Jinja2 template)&quot;]
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    module_entry --&gt; cli
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>    cli --&gt; actions
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    cli --&gt; config
-</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>    cli --&gt; models
-</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    cli --&gt; report
-</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>    report --&gt; actions
-</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>    report --&gt; config
-</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>    report --&gt; diff
-</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>    report --&gt; formatting
-</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>    report --&gt; models
-</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>    report --&gt; tmpl
-</span><span id="__span-2-23"><a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>    formatting --&gt; diff
-</span></code></pre></div>
+<pre class="mermaid"><code>flowchart LR
+    module_entry["__main__.py\n(module entrypoint)"]
+    cli["cli.py\n(CLI + orchestration)"]
+    report["report.py\n(report aggregation + rendering)"]
+    actions["actions.py\n(action vocabulary)"]
+    diff["diff.py\n(semantic diffs)"]
+    formatting["formatting.py\n(Markdown cell formatting)"]
+    models["models.py\n(Pydantic models)"]
+    config["config.py\n(configuration)"]
+    tmpl["templates/report.md.j2\n(Jinja2 template)"]
+
+    module_entry --&gt; cli
+    cli --&gt; actions
+    cli --&gt; config
+    cli --&gt; models
+    cli --&gt; report
+    report --&gt; actions
+    report --&gt; config
+    report --&gt; diff
+    report --&gt; formatting
+    report --&gt; models
+    report --&gt; tmpl
+    formatting --&gt; diff</code></pre>
 
 
 
