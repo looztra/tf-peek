@@ -12,8 +12,6 @@ See `proposal.md — Why` for motivation. The constraints that shape the approac
 - The Jinja2 environment runs `autoescape=False` (`report.py:151`). The `<summary>` line is fed
   `f"{rc.type}.{rc.name}"` (`report.py:115`), both HCL identifiers, so it is currently safe by
   accident rather than by construction.
-- `PeekConfig` has exactly one field and `load_config()` reads exactly one key, discarding every
-  other key in the file silently (`src/tf_peek/config.py:108`).
 - `ResourceChange.is_replacement` (`src/tf_peek/models.py:31`) tests set membership, so it is
   order-insensitive by construction.
 - `format_report_value()` (`src/tf_peek/formatting.py:16`) JSON-serializes its input. It is the wrong
@@ -37,10 +35,9 @@ See `proposal.md — Why` for motivation. The constraints that shape the approac
   item P1 1.5; see the *Row badges deferred* decision.
 - Splitting `replace` into two actions in `ACTION_ORDER` / the `Action` enum. See the *Replacement
   mechanism* decision for why this is not merely deferred but rejected.
-- Any reason- or path-driven tier escalation. `always_critical_when_reason` is a genuinely good
-  follow-up, but `archive/2026-08-18-fail-on-critical-gate/design.md:29-31` rules out a second policy
-  language and the gate is two days old; perturbing its semantics now costs the clean story for a
-  nuance.
+- Any reason- or path-driven tier escalation or visual expectedness marker. Risk remains the
+  repository's policy, expressed through the existing tier system; this change reports only the
+  causation metadata Terraform states.
 - Applying the causation renderer to `resource_drift` (study 2.6). `resource_drift` reuses the
   `resource_changes` object structure, so it will reuse this renderer for free when it lands.
 
@@ -49,25 +46,25 @@ See `proposal.md — Why` for motivation. The constraints that shape the approac
 **`action_reason` is an open `str`, not a `Literal` — this change fails open, and that is the
 opposite of the sensitivity decision on purpose.** The format spec is explicit: reason codes "are
 display hints only and the set of possible hints may change over time. Users of this must be prepared
-to encounter unrecognized reasons and treat them as unspecified reasons." A pydantic `Literal` of the
-nine documented codes would reject the whole plan on a code introduced by a future Terraform release —
-turning a lost display hint into a total parse failure. Contrast `_is_sensitive()`
+to encounter unrecognized reasons and treat them as unspecified reasons." A pydantic `Literal` tied
+to any current code set would reject the whole plan on a code introduced by a future Terraform
+release — turning a lost display hint into a total parse failure. Contrast `_is_sensitive()`
 (`src/tf_peek/diff.py:67`), which deliberately fails **closed** on unexpected marker shapes. Both are
 correct because the failure costs differ by orders of magnitude: mishandling a sensitivity marker
 publishes a secret into a durable, notification-emailed PR comment (study §4.1 D1); mishandling a
-reason code loses a sentence. The asymmetry is recorded here so it reads as a decision rather than an
-inconsistency.
+reason code loses a sentence. The phrasing table is therefore a best-effort interpretation of known
+codes, while unknown codes remain visible as uninterpreted Terraform output.
 
-**Paths win over reason, and `replace_because_cannot_update` is suppressed when paths exist.** The
-two fields are complementary rather than redundant, but they do overlap in exactly one case: a
-provider-forced replace typically carries both `replace_paths` and
-`action_reason = "replace_because_cannot_update"`. Rendering both produces "replaced because the
-provider cannot update in place; forces replacement: `settings[0].tier`" — the second clause already
-implies the first, and the study's entire thesis (§5.3) is that alert fatigue is the enemy.
-`replace_because_tainted` and `replace_by_request` arrive *with* empty paths and are therefore the
-only signal available. So: paths present → paths; paths absent → phrased reason; neither → render
-nothing. Rejected alternative: always render both fields and let the reader deduplicate. Rejected
-because the redundant pair is the *common* case, so the noise would be the default experience.
+**Only `replace_because_cannot_update` is suppressed when paths exist.** A provider-forced replace
+typically carries both `replace_paths` and `action_reason = "replace_because_cannot_update"`.
+Rendering both produces "replaced because the provider cannot update in place; forces replacement:
+`settings[0].tier`" — the second clause already implies the first, and the study's entire thesis
+(§5.3) is that alert fatigue is the enemy. Tainted, requested and trigger-driven replacements
+typically have empty paths and therefore need the reason. Any other recognized or unrecognized reason
+that arrives alongside paths remains visible because the paths do not prove it redundant. So:
+paths plus `replace_because_cannot_update` → paths only; paths plus any other reason → both; reason
+without paths → reason; neither → render nothing. Rejected alternative: paths always win. Rejected
+because it would silently discard the forward-compatible reason that the open-string model preserves.
 
 **HCL-style path rendering (`settings[0].tier`), accepting one unresolvable ambiguity.** Considered
 `settings.0.tier` (unambiguous, jq-flavoured) and `settings → 0 → tier` (unambiguous, escaping-
@@ -126,9 +123,9 @@ version first would have to be un-shipped.
 outright.** Considered five placements. Model-only (parse the ordering, render nothing) is rejected
 because study §4.2 already indicts `module_address` as "parsed into the model but **never used**", and
 repeating that pattern inside the change that fixes an adjacent instance of it is self-defeating.
-A `<summary>` chip is rejected as real-estate contention: that line is already carrying the address,
-the causation short form and potentially the 💥 badge, and a replace-ordering nuance only matters
-*after* the reader has decided to read the resource. Splitting `replace` into `replace` /
+A `<summary>` chip is rejected as real-estate contention: that line already carries the address and
+the causation short form; a replace-ordering nuance matters only *after* the reader has decided to
+read the resource. Splitting `replace` into `replace` /
 `replace_cbd` is rejected for a stronger reason than cost: existing configs say
 `critical_on = ["delete", "replace"]`, so a split either needs `"replace"` to alias both new actions
 (a second matching mechanism beside `match_type`/`match_pattern`) or lets adding
@@ -166,22 +163,9 @@ study defect D2 (five runs, five MD5 hashes) relocated to a new field. Sorting t
 strings — not the raw step arrays — keeps the rendered order and the sort key identical, so what a
 reader sees is what was ordered.
 
-**`[report]` config table, config-only, with strict keys.** The badge opt-out is a repo-level
-report-shape preference — the same family as tiers — not a per-invocation override, which is what
-every existing CLI flag is (`--show-sensitive`, `--fail-on-critical-on`). A flag would also add an
-eighth parameter to `generate()`, and `archive/2026-08-18-fail-on-critical-gate/design.md:122-128` already
-records "a tenth option ⇒ revisit the CLI shape" as a standing signal. So: config-only. The new
-`ReportOptions` model sets `extra="forbid"`, because an opt-out that silently fails to opt out is
-worse than no opt-out — `highlight_unexpected_delete` (missing `s`) must be an error, not a no-op.
-Rejected alternative: forbidding unknown keys globally on `PeekConfig`. Rejected as an
-unbounded-blast-radius change to every existing config file, made in passing; a mistyped *table*
-name (`[reprot]`) therefore still silently no-ops, which is the study's M7 silent-failure family and
-stays out of scope — named here so it is a known gap rather than an oversight.
-
-**Default on.** `highlight_unexpected_deletes` defaults to `true`. The badge's whole value is being
-there before anyone knew to ask for it; an opt-in accident detector detects no accidents. The
-`delete_because_no_resource_config` no-badge case is what keeps the default honest — a badge on every
-delete would be decoration.
+**Documentation stays explanation-focused.** This change updates the resource-tier explanation and
+the study status row. It adds no configuration reference and no how-to page: reading causation in an
+already-generated report is explanatory content, not a distinct task-shaped workflow.
 
 ## Risks / Trade-offs
 
@@ -199,14 +183,9 @@ indicator", not a specific number, so tuning the number later is not a spec chan
 
 **[Risk]** The reason-phrasing table drifts from Terraform's enum as HashiCorp adds codes. →
 **Mitigation**: unknown codes pass through verbatim behind a "reason reported by Terraform" preamble,
-and a fixture carrying a deliberately unrecognized `delete_because_*` code pins that path, so drift
-degrades a sentence instead of failing a parse or silently dropping the explanation.
-
-**[Risk]** The 💥 badge defaults on, so every repository whose plan contains an addressing-slip delete
-sees new, alarming output on upgrade. → **Mitigation**: that is the feature working; the badge fires
-only on four specific reason codes that Terraform itself distinguishes from intentional removal, and
-`highlight_unexpected_deletes = false` is a one-line opt-out documented in
-`docs/reference/configuration.md`.
+including when they accompany forcing paths. Fixtures cover an unknown deletion reason and an unknown
+replacement reason alongside `replace_paths`, so drift degrades a sentence instead of failing a parse
+or silently dropping the explanation.
 
 **[Risk]** Both goldens move, and a golden diff is easy to rubber-stamp. → **Mitigation**: unavoidable
 regardless of scope, since `kitchen-sink.json:49` and `examples/demo-plan.json:65` already carry
@@ -229,17 +208,9 @@ side.
 
 ## Migration Plan
 
-Purely additive: two optional plan fields, one new optional config table, additional report content.
-A plan with neither `replace_paths` nor `action_reason` renders exactly as it does today. No data
-migration, no invocation changes, no exit-code changes. Both goldens are regenerated with
+Purely additive: two optional plan fields and additional report content. A plan with neither
+`replace_paths` nor `action_reason` renders exactly as it does today. No data migration, configuration
+change, invocation change or exit-code change. Both goldens are regenerated with
 `uv run poe pytest:integration --snapshot-update` **in the same commit** as the change that causes
 them, per `commit-and-pr-conventions` rule 1. Rollback is a normal revert; nothing persists outside
 the repository.
-
-## Open Questions
-
-- Should `docs/how-to/` gain a task-shaped page ("find out why Terraform is replacing a resource"), or
-  is the reference + explanation update enough? Answerable after the rendering exists and can be
-  screenshotted; it changes no spec, no approach and no task beyond a doc file.
-- The exact `<summary>` path cap (2 vs 3) is left to implementation, since the spec fixes only
-  "bounded, with a remainder indicator". Worth revisiting against a real multi-path plan.
