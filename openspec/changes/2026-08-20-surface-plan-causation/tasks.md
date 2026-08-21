@@ -1,7 +1,8 @@
 ## 1. Plan model
 
-- [x] 1.1 Add `Change.replace_paths: list[list[str | int]]` with an empty-list default factory, so a
-      plan that omits the field parses to "no forcing paths" rather than `None`; verify in task 1.4
+- [x] 1.1 Add `Change.replace_paths: list[list[Any]]` with an empty-list default factory and a
+      validator that treats explicit null as no forcing paths, so malformed step types lose only the
+      hint rather than the report; verify in task 1.4
 - [x] 1.2 Add `ResourceChange.action_reason: str | None = None` as an **open** `str`, not a `Literal`
       of known codes; verify absent, known and unknown values in task 1.4
 - [x] 1.3 Add an order-sensitive replacement-mechanism property to `ResourceChange` reading
@@ -21,9 +22,9 @@
 - [x] 2.3 Sort rendered path strings ascending and de-duplicate them, sorting the **rendered** form
       so the sort key and displayed text are identical; verify duplicates and input-order changes in
       task 2.7
-- [x] 2.4 Implement escaping for the Markdown context (pipe, backtick, CR/LF) and the `<summary>` HTML
-      context (additionally `<`, `&`, `"`), emitting the summary short form inside an explicit
-      `<code>` element; verify both contexts in task 2.7 and the integration fixture in task 5.2
+- [x] 2.4 Implement context-specific escaping for code-span backticks, Markdown inline delimiters
+      and HTML, collapsing CR/LF where a physical line must remain intact; leave pipes unchanged in
+      paragraph contexts where they are inert; verify each context in tasks 2.7 and 5.2
 - [x] 2.5 Phrase the known non-read reason codes emitted by Terraform 1.9.5 in neutral prose,
       including `replace_by_triggers` and `delete_because_no_move_target`; pass an unrecognized code
       through behind a "reason reported by Terraform" preamble; verify every mapping and fallback in
@@ -54,18 +55,16 @@
 - [x] 4.2 Add the causation callout to the detail-block body: the complete forcing-path list and any
       non-redundant phrased reason, plus the replacement mechanism for replaced resources; verify
       combined paths and reasons in task 5.5
-- [x] 4.3 Keep the mechanism statement out of the `<summary>` line and keep the "Details hidden by
-      configuration" notice for summarized resources' value table; verify both placements in tasks
-      3.3 and 5.5
+- [x] 4.3 Keep the mechanism statement out of the `<summary>` line and keep the "Attribute values
+      hidden by configuration" notice for summarized resources' value table; verify both placements
+      in tasks 3.3 and 5.5
 
 ## 5. Fixtures and goldens
 
-- [x] 5.1 Add focused fixtures under `tests/integration/fixtures/` for: tainted replacement;
-      `replace_by_request`; `replace_by_triggers`; paths plus `replace_because_cannot_update`; paths
-      plus an unrecognized non-redundant reason; replacement with neither field; representative
-      deletion reasons including `delete_because_no_resource_config`, `delete_because_each_key` and
-      `delete_because_no_move_target`; an unrecognized reason; a `["create", "delete"]` replacement;
-      and duplicate, unsorted paths; verify each through task 5.5
+- [x] 5.1 Add focused fixtures under `tests/integration/fixtures/` for representative known and
+      unknown reasons, reason precedence, a replacement with no stated cause, a non-replacement
+      carrying replacement metadata, both replacement orders, and duplicate unsorted paths; verify
+      the distinct integration paths through task 5.5
 - [x] 5.2 Add a hostile-path fixture whose forcing path contains a map key holding a pipe, a backtick,
       a line feed and text resembling an HTML tag; verify the generated Markdown and HTML contexts
       remain structurally intact in task 5.5
@@ -108,16 +107,15 @@ not actioned here.
       its attribute name whenever that attribute's value is masked, so paths and values share one
       fail-closed policy; fixture `causation-sensitive-path.json` gains a descending path
 - [x] 8.2 (F2, F8, F10, F13) Make `Causation` neutral data and move escaping and markup into the
-      template: `in_code_span`, `in_markdown` (entity-escapes `&`, `<`, backtick) and `in_html`
-      (`html.escape`) registered as Jinja filters, plus a `causation_summary` macro; add
-      `causation-hostile-reason.json`
+      template: context-specific `in_code_span`, `in_markdown` and `in_html` Jinja filters plus a
+      `causation_summary` macro; add `causation-hostile-reason.json`
 - [x] 8.3 (F3) Render forcing paths only for a replacement, driven by the mechanism tri-state; add
       `causation-non-replace-paths.json`
 - [x] 8.4 (F4) Add the `resource-tier-config` MODIFIED delta, correct `proposal.md`'s capability and
       impact claims, fix `docs/reference/configuration.md`, and reword the in-report notice to
       "Attribute values hidden by configuration"
-- [x] 8.5 (F5) Replace the vacuous hostile-path assertions with structural ones: zero cell delimiters
-      on the causation line, even backtick count, exact table column counts, balanced HTML elements
+- [x] 8.5 (F5) Replace the vacuous hostile-path assertions with checks over the causation output:
+      one physical line, inert backticks, a literal paragraph pipe and balanced HTML elements
 - [x] 8.6 (F6) Accept an explicit null and any step type in `replace_paths`, rendering an unexpected
       step as a JSON subscript rather than failing the parse; match `bool` before `int`
 - [x] 8.7 (F7) Replace `destroy_before_create` with the total
@@ -131,3 +129,25 @@ not actioned here.
       goldens; replace the `replace_paths` round-trip test with one defending the new validator
 - [x] 8.12 Update the spec deltas and `design.md` for the corrected sensitivity premise and the new
       requirements, then re-run every gate in section 7
+
+## 9. Second adversarial-review remediation
+
+Findings, evidence and lead judgment are appended to `review.md` under "Second adversarial review";
+the original review report remains unchanged.
+
+- [x] 9.1 (AR2-F1) Neutralize inline Markdown syntax in stated reasons and verify the rendered GitHub
+      Markdown cannot create links, images or emphasis
+- [x] 9.2 (AR2-F2) Render replacement-only reason codes as uninterpreted Terraform output when the
+      classified action is not a replacement
+- [x] 9.3 (AR2-F3) Scope causation detail requirements to non-silent resources and pin silent
+      replacements remaining undisclosed
+- [x] 9.4 (AR2-F4) Update architecture, explanation, reference and design text made stale by causation
+      surviving `detail = "summary"`
+- [x] 9.5 (AR2-F5) Delete vacuous hostile-path table assertions and state the structural checks the
+      regression actually performs
+- [x] 9.6 (AR2-F6) Reconcile superseded task descriptions with the remediated implementation
+- [x] 9.7 (AR2-F7) Remove unreachable newline collapsing from the forcing-path code-span escaper
+- [x] 9.8 Append the second review's findings, decisions, remediation and verification to `review.md`
+      without changing the original review report
+- [x] 9.9 Re-run the focused smoke checks, project quality gates, documentation build and strict
+      OpenSpec validation

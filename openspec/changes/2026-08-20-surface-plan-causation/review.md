@@ -348,3 +348,141 @@ A path step is still rendered verbatim inside a code span, where a backtick must
 (`\u0060`) because CommonMark does not decode entities there. That substitution is the only place the
 report shows something other than what the plan said, and it is confined to a character no Terraform
 attribute path contains in practice. Every other context now preserves the plan's text exactly.
+
+---
+
+# Second Adversarial Review — `2026-08-20-surface-plan-causation`
+
+Fresh adversarial review of the complete branch and of the first review report above. This section is
+append-only: the original report remains unchanged so its findings, decisions and then-current
+verification claims stay auditable.
+
+- **Reviewed at**: commit `39b5b43` plus its complete `origin/main...HEAD` branch diff
+- **Scope**: implementation, tests, docs, OpenSpec artifacts and the first review's remediation claims
+- **Reviewers**: Skeptic, Architect and Minimalist, followed by an independent lead judgment
+- **Initial verdict**: **CONTESTED** — four accepted medium-severity and three accepted low-severity
+  findings
+- **Current status**: all seven accepted findings remediated; tasks 9.1–9.9 map this pass to the tree
+
+The Minimalist reviewer's structured return failed schema validation. Its complete plain-prose result
+was recovered directly, so no lens or finding was lost.
+
+## Second-review findings
+
+|ID|Severity|Finding|Lens|Judgment|Status|
+|---|---|---|---|---|---|
+|AR2-F1|medium|Unknown reasons could create Markdown links, images and emphasis|Skeptic, Architect, Minimalist|accept|fixed|
+|AR2-F2|medium|A replacement-only reason contradicted a non-replacement action|Skeptic|accept|fixed|
+|AR2-F3|medium|The causation delta conflicted with silent-resource disclosure|Lead|accept|fixed|
+|AR2-F4|medium|Summary-detail architecture and user docs remained false|Architect, Lead|accept|fixed|
+|AR2-F5|low|The hostile-path regression retained vacuous assertions|Skeptic, Minimalist|accept|fixed|
+|AR2-F6|low|Completed tasks described behavior superseded by the first remediation|Architect, Minimalist|accept|fixed|
+|AR2-F7|low|The code-span escaper retained unreachable newline handling|Minimalist|accept|fixed|
+
+## Second-review remediation
+
+### AR2-F1 — Markdown and GitHub autolinks remained live
+
+`escape_in_markdown` neutralized HTML and backticks but left inline Markdown delimiters active. A
+reason such as `[click](https://example.invalid) **bold** ![image](...)` therefore created live markup
+in a PR comment, contradicting F2's fixed status above and the capability's explicit no-markup rule.
+
+**Fix.** Inline Markdown delimiters now become numeric entities. A focused GitHub API smoke check
+then exposed a second parser layer: GitHub autolinks URLs after entity decoding, including inside raw
+HTML `<summary>` content. Both dynamic-text filters therefore split URL, mention and issue-reference
+prefixes with an invisible trusted HTML comment. The rendered and copied text stays exact, while the
+parser receives separate text nodes and cannot create an attacker-controlled link. The hostile-reason
+fixture now covers HTML, headings, backticks, emphasis, links, images, strikethrough, mentions, issue
+references, math delimiters and bare URLs in both contexts.
+
+### AR2-F2 — Replacement prose contradicted the Update heading
+
+The first F3 fix gated forcing paths on `replacement_mechanism` but interpreted
+`replace_because_tainted` unconditionally. The branch's own non-replacement fixture consequently
+rendered "Terraform planned to replace it" under `Update` and pinned the contradiction in a test.
+
+**Fix.** Known replacement-only reason codes are interpreted only when a replacement mechanism is
+present. On any other action they use the forward-compatible "reason reported by Terraform" fallback,
+which preserves the plan hint without asserting an action the report did not classify.
+
+### AR2-F3 — Silent resources made the new requirement impossible
+
+The causation delta required every replaced resource to receive a detail block and collapsed summary,
+while `silent-disclosure` forbids either for `tier = "silent"`. The implementation correctly followed
+the established silent contract, leaving the active specs inconsistent.
+
+**Fix.** The causation capability now scopes rendered explanations to resources that receive a
+Critical Changes or Resource Details entry. A cross-capability scenario and CLI-level regression pin
+that a silent replacement remains counted but does not gain an address, path or detail block.
+
+### AR2-F4 — Documentation remediation stopped at the reference table
+
+The architecture pipeline and changed user docs still called `detail = "summary"` title-only, while
+the implementation deliberately retains causation. The design also said the behavior was never
+specified after a MODIFIED `resource-tier-config` delta had been added.
+
+**Fix.** The architecture module tree names `causation.py`; the processing pipeline distinguishes
+silent, summary and full detail; the explanation and configuration example describe hidden values
+with retained causation; and the design records the modified contract rather than its superseded
+premise.
+
+### AR2-F5 — Hostile-path assertions still overstated coverage
+
+The test selected a line with `startswith("**Forces replacement:**")` and then asserted it did not
+start with a pipe. It also counted columns in an attribute table causation never enters. The first
+review's zero-delimiter claim simultaneously contradicted the deliberate decision to preserve a pipe
+in paragraph text.
+
+**Fix.** The duplicated table scanner and unrelated table assertion are gone. The regression now
+checks the causation line itself: one physical line, balanced code-span delimiters, a neutralized
+backtick, exactly the fixture's one literal pipe, escaped summary markup and balanced report-owned
+HTML elements.
+
+### AR2-F6 — The implementation ledger contradicted its remediation section
+
+Early completed tasks still required strict path-step typing, pipe escaping, the old summary notice
+and deleted fixture coverage, while section 8 recorded the opposite decisions.
+
+**Fix.** Tasks 1.1, 2.4, 4.3, 5.1, 8.2 and 8.5 now describe the shipped contract. Section 9 records
+this second review separately instead of rewriting the first review report.
+
+### AR2-F7 — Code-span newline handling had no producer
+
+`escape_in_code_span` only receives rendered forcing paths. Identifier and integer steps cannot carry
+line endings, while every other step passes through `json.dumps`, which already escapes them.
+
+**Fix.** The code-span filter now performs only its reachable job: substituting a backtick that could
+close the span. The unreachable newline test was deleted; newline collapse remains covered in the
+Markdown and HTML contexts that can receive raw reason text.
+
+## Second-review rejected proposals
+
+- **Silently accept arbitrary outer `replace_paths` shapes** — rejected as scope expansion. The spec
+  requires null and unexpected *step* tolerance, not acceptance of a structurally invalid field.
+- **Filter the closed mechanism statements for hypothetical future plan data** — rejected as
+  speculative; both strings come from a private static table.
+- **Measure summary width after HTML entity expansion** — rejected because entities expand source
+  bytes, not rendered width.
+- **Repair the entire pre-existing data-model architecture page** — rejected from this change's scope;
+  the newly false summary-detail pipeline and module inventory were corrected.
+
+## Second-review verification
+
+|Check|Result|
+|---|---|
+|Focused causation regressions|pass — **76 passed**|
+|Actual CLI hostile-reason render|pass — one-line inert reason in body and summary|
+|GitHub Markdown API render|pass — hostile reason displayed literally; no injected link, image, emphasis or HTML element|
+|Actual CLI non-replacement render|pass — Update contains only uninterpreted Terraform reason; no replacement claim or mechanism|
+|`uv run poe style`|pass — import fix plus 3 formatted files|
+|`uv run poe lint:all`|pass — Ruff, Pylint 10.00/10 and `ty check`|
+|`uv run poe test`|pass — **208 passed**, 2 snapshots|
+|`uvx pre-commit run --all-files`|pass — all hooks|
+|`make build-docs`|pass|
+|`openspec validate 2026-08-20-surface-plan-causation --strict`|pass|
+
+## Second-review lead judgment
+
+All accepted findings are remediated. The core decisions that survived both reviews remain unchanged:
+one fail-closed sensitivity policy, a total replacement-mechanism tri-state, rendered-form sorting,
+no tier or exit-code changes, and no new configuration surface.

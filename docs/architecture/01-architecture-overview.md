@@ -26,6 +26,7 @@ src/tf_peek/
 ├── __main__.py       # Module entrypoint (python -m tf_peek)
 ├── cli.py            # CLI definition and top-level orchestration
 ├── actions.py        # Terraform action vocabulary shared by the report and the CLI
+├── causation.py      # Rendering and safe presentation of Terraform's stated change causation
 ├── diff.py           # Semantic diffing of before/after values and their markers
 ├── formatting.py     # Rendering of semantic diff values into Markdown table cells
 ├── report.py         # Aggregation of a plan into report data, and template rendering
@@ -52,13 +53,14 @@ src/tf_peek/
    / `critical`) and, for `normal`, a `detail` level (`full` / `summary`). A `critical` resource
    whose action is in that rule's `critical_on` list is routed into the report's 🚨 Critical
    Changes section instead of the normal resource list.
-5. **Compute / emit diffs** — `silent`-tier resources are only counted: they never reach the diff
-   pipeline and never appear in any rendered entry. `summary`-detail resources are rendered as a
-   title-only collapsible entry (no attribute table, no `(known after apply)` markers); only the
-   `calculate_diff` step is skipped. For everything else, before/after attribute values are
-   compared; Terraform's `after_unknown` markers are resolved recursively into the `after` value,
-   so a nested unknown leaf becomes `(known after apply)` inside its containing structure
-   instead of being lost.
+5. **Compute detail and causation** — `silent`-tier resources are only counted: they never reach the
+   detail pipeline and never appear in a rendered entry. `summary`-detail resources skip
+   `calculate_diff`, so they show no attribute values or `(known after apply)` markers, but their
+   forcing paths, stated reason and replacement mechanism still render. Full-detail resources also
+   compare before/after values and recursively resolve Terraform's `after_unknown` markers, so a
+   nested unknown leaf becomes `(known after apply)` inside its containing structure instead of being
+   lost.
+
 6. **Mask sensitive values** — an attribute whose `before_sensitive`/`after_sensitive` subtree has any
    truthy leaf is replaced with `(sensitive value)` on both sides, unless `--show-sensitive` is passed.
    Masking runs before any formatting so no serialization path can bypass it.

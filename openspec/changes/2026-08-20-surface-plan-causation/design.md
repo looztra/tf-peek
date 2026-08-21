@@ -141,14 +141,13 @@ not safe either — it can fail on name collisions, port conflicts or quota. tf-
 schema and cannot know which applies, so asserting a consequence would be over-claiming. Study §3
 spends five points earning the credibility that a wrong severity claim spends.
 
-**Causation survives `detail = "summary"`.** The `is_summarized` branch (`report.py:92`) currently
-short-circuits diff computation, and the template replaces the whole table with "Details hidden by
-configuration". `summary` suppresses **values**; a replace path is an attribute *name* and a reason
-code is plan metadata, so keeping them is the coherent reading of the setting and makes `summary` a
-usable middle setting for a noisy-but-important resource type instead of a near-`silent`. Note this
-behaviour was never specified — the current specs only fix `detail`'s default (`resource-tier-config`
-requirement "detail field defaults to full"), so the new capability establishes it rather than
-changing it.
+**Causation survives `detail = "summary"`.** Before this change, the `is_summarized` branch
+short-circuited diff computation and the template replaced the whole table with "Details hidden by
+configuration". `summary` now suppresses **values**; a replace path is an attribute *name* and a
+reason code is plan metadata, so keeping them makes `summary` a usable middle setting for a
+noisy-but-important resource type instead of a near-`silent`. The `resource-tier-config` delta
+therefore narrows the existing `detail = "summary"` contract to attribute values and requires the
+notice to describe that boundary accurately.
 
 **Sensitivity shares one policy with the diff table, and paths are cut to its granularity.** A replace
 path can point at an attribute masked as `(sensitive value)`, and it can also descend *into* one. The

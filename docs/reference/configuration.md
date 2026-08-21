@@ -175,7 +175,7 @@ critical_on = ["delete", "replace", "update"]
 match_pattern = 'module\.k8s_infra_git_sync\.null_resource\.'
 tier = "silent"
 
-# Summarise verbose IAM binding types (no diff, title only)
+# Summarise verbose IAM binding types (hide values, keep the change explanation)
 [[resources]]
 match_type = "google_project_iam_binding"
 detail = "summary"

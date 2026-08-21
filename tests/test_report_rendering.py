@@ -97,6 +97,33 @@ tier = "silent"
     assert "google_storage_bucket" in details
 
 
+def test_silent_replacement_does_not_create_a_causation_detail_block(tmp_path: Path) -> None:
+    """Causation metadata does not override the silent tier's no-detail contract."""
+    plan = make_plan(
+        [
+            rc_entry(
+                "null_resource",
+                "rotated",
+                ["delete", "create"],
+                before={"triggers": {"version": "old"}},
+                after={"triggers": {"version": "new"}},
+                replace_paths=[["triggers", "version"]],
+            )
+        ]
+    )
+    config = """
+[[resources]]
+match_type = "null_resource"
+tier = "silent"
+"""
+    report = run_generate(plan, config, tmp_path)
+
+    assert "null_resource.rotated" not in report
+    assert "triggers.version" not in report
+    assert "| ⚠️ Replace |" in report
+    assert "🔇 1" in report
+
+
 def test_silent_resources_disclosed_in_type_table(tmp_path: Path) -> None:
     """Silent resources appear in the 🔇 sub-section of the type table."""
     plan = make_plan(

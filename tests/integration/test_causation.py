@@ -8,6 +8,7 @@ import re
 from pathlib import Path
 
 import pytest
+from markdown import markdown
 from typer.testing import CliRunner
 
 from tf_peek.cli import app
@@ -31,22 +32,6 @@ def _resource_block(report: str, address: str) -> str:
     start = report.index(f"*`{address}`*")
     end = report.index("</details>", start)
     return report[start:end]
-
-
-def _count_table_columns(row: str) -> int:
-    r"""Count physical Markdown table delimiters, honoring backslash escapes."""
-    count = 0
-    escaped = False
-    for ch in row:
-        if escaped:
-            escaped = False
-            continue
-        if ch == "\\":
-            escaped = True
-            continue
-        if ch == "|":
-            count += 1
-    return count
 
 
 def _assert_html_elements_balanced(report: str) -> None:
@@ -82,7 +67,7 @@ def test_unknown_deletion_reason_is_passed_through_and_marked(tmp_path: Path) ->
     """An unrecognized reason code renders successfully, verbatim, marked as passed through."""
     report = _run_generate("causation-reasons.json", tmp_path)
     block = _resource_block(report, "google_storage_bucket.future_reason")
-    assert "delete_because_a_future_terraform_release" in block
+    assert "delete&#95;because&#95;a&#95;future&#95;terraform&#95;release" in block
     assert "reported by Terraform" in block
 
 
@@ -105,7 +90,7 @@ def test_unknown_reason_alongside_paths_is_preserved(tmp_path: Path) -> None:
     block = _resource_block(report, "google_sql_database_instance.non_redundant")
     assert "**Forces replacement:** `engine_version`" in block
     assert "**Reason:**" in block
-    assert "replace_because_a_future_terraform_release" in block
+    assert "replace&#95;because&#95;a&#95;future&#95;terraform&#95;release" in block
 
 
 def test_replacement_with_neither_field_has_no_explanation(tmp_path: Path) -> None:
@@ -129,7 +114,6 @@ def test_replacement_with_neither_field_has_no_explanation(tmp_path: Path) -> No
 def test_hostile_forcing_path_stays_structurally_safe(tmp_path: Path) -> None:
     """A pipe, backtick, line feed and HTML-like text in a forcing path cannot corrupt the report."""
     report = _run_generate("causation-hostile-path.json", tmp_path)
-    block = _resource_block(report, "google_project_iam_member.hostile")
 
     forces_line = next(line for line in report.splitlines() if line.startswith("**Forces replacement:**"))
     # The hostile key arrives on one physical line, with its line feed a visible escape.
@@ -137,14 +121,10 @@ def test_hostile_forcing_path_stays_structurally_safe(tmp_path: Path) -> None:
     # The key's backtick cannot close the code span the template opened around the path.
     assert forces_line.count("`") % 2 == 0
     assert r"\u0060" in forces_line
-    # A pipe is ordinary text in a paragraph, and the line is no table row, so the report keeps
-    # saying what the plan said rather than mutating it.
+    # A pipe is ordinary paragraph text here. The fixture contributes exactly one, and the complete
+    # causation callout remains one physical line instead of creating a table row or extra block.
+    assert forces_line.count("|") == 1
     assert "| pipe" in forces_line
-    assert not forces_line.lstrip().startswith("|")
-    # The block's own attribute table is untouched: three rows of exactly four delimiters, so a
-    # fragment leaking into a cell would change the count rather than pass unnoticed.
-    table_rows = [line for line in block.splitlines() if line.strip().startswith("|")]
-    assert [_count_table_columns(row) for row in table_rows] == [4, 4, 4]
 
     summary_line = next(line for line in report.splitlines() if "hostile" in line and "<summary>" in line)
     # The summary fragment renders markup as literal content, and opens no element of its own.
@@ -155,36 +135,51 @@ def test_hostile_forcing_path_stays_structurally_safe(tmp_path: Path) -> None:
 
 
 def test_hostile_reason_cannot_inject_markup_or_close_the_block(tmp_path: Path) -> None:
-    """A hostile `action_reason` reaches an HTML-capable Markdown paragraph and must stay inert."""
+    """A hostile `action_reason` reaches both dynamic-text contexts and must stay inert."""
     report = _run_generate("causation-hostile-reason.json", tmp_path)
 
     reason_line = next(line for line in report.splitlines() if line.startswith("**Reason:**"))
-    # No tag can open: the reason is entity-escaped, so `</details>` cannot close the block.
-    assert "<" not in reason_line
+    assert "</details>" not in reason_line
+    assert "<img" not in reason_line
     assert "&lt;/details>" in reason_line
     assert "&lt;img src=x onerror=alert(1)>" in reason_line
-    # The raw line feed collapsed, so the injected heading is not a heading and not a new line.
     assert "# Injected Heading" in reason_line
-    assert "\\n" in reason_line
-    # The backtick cannot open a code span, and the ampersand renders as itself.
+    assert "&#92;n" in reason_line
     assert "&#96;code&#96;" in reason_line
-    assert "&amp;" in reason_line
+    assert "&#42;&#42;bold&#42;&#42;" in reason_line
+    assert "&#91;link&#93;(h<!-- -->ttps://example.invalid)" in reason_line
+    assert "&#33;&#91;image&#93;(h<!-- -->ttps://example.invalid/x.png)" in reason_line
+    assert "&#126;&#126;strike&#126;&#126;" in reason_line
+    assert "<!-- -->@octocat" in reason_line
+    assert "<!-- -->#123" in reason_line
+    assert "&#36;math&#36;" in reason_line
+    assert "w<!-- -->ww.example.invalid" in reason_line
+
+    rendered_reason = markdown(reason_line)
+    assert rendered_reason.count("<strong>") == 1  # The trusted **Reason:** label only.
+    for injected_element in ("<a ", "<img", "<em>", "<del>"):
+        assert injected_element not in rendered_reason
     _assert_html_elements_balanced(report)
 
     summary_line = next(line for line in report.splitlines() if "hostile_reason" in line and "<summary>" in line)
-    assert "<" not in summary_line.removeprefix("<summary><b>").removesuffix("</summary>").replace("</b>", "")
+    summary_fragment = summary_line.removeprefix("<summary><b>").removesuffix("</summary>").replace("</b>", "")
+    assert "</details>" not in summary_fragment
+    assert "<img" not in summary_fragment
+    assert "h<!-- -->ttps://example.invalid" in summary_fragment
+    assert "w<!-- -->ww.example.invalid" in summary_fragment
 
 
 def test_non_replace_change_carrying_forcing_paths_states_no_replacement(tmp_path: Path) -> None:
-    """`replace_paths` on an update explains nothing, so the report must not claim a replacement."""
+    """Replacement metadata on an update is surfaced without asserting a replacement."""
     report = _run_generate("causation-non-replace-paths.json", tmp_path)
     block = _resource_block(report, "aws_instance.updated_with_paths")
 
     assert "**Forces replacement:**" not in block
     assert "**Mechanism:**" not in block
     assert "forces replacement:" not in report
-    # The stated reason still reaches the block: only the replacement claim is withheld.
-    assert "the resource is tainted" in block
+    assert "the resource is tainted" not in report
+    assert "reason reported by Terraform" in block
+    assert "replace&#95;because&#95;tainted" in block
 
 
 # ---------------------------------------------------------------------------
