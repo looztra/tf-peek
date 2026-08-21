@@ -2,6 +2,10 @@
 
 Ensures the report explains its own verdicts: when a resource is being replaced or deleted, the reader learns why Terraform decided that, using only what the plan states and never an inferred reason.
 
+These requirements apply to resources that receive a rendered entry in the Critical Changes or
+Resource Details section. Resources classified as `silent` remain counted but undisclosed, as
+required by `silent-disclosure`; causation metadata does not create a detail block for them.
+
 ## ADDED Requirements
 
 ### Requirement: Replacements name the attributes that forced them
@@ -24,6 +28,13 @@ When a replaced resource's plan change states one or more replacement-forcing at
 - **WHEN** a resource is being created, updated or deleted
 - **THEN** its detail block contains no replacement-forcing attribute path, even if the change states one
 - **THEN** its collapsed summary line contains no replacement-forcing attribute path
+
+#### Scenario: Silent replacement remains undisclosed
+
+- **WHEN** a replaced resource states forcing paths but is classified with `tier = "silent"`
+- **THEN** it remains included in summary counts
+- **THEN** it generates no detail block or collapsed summary line, consistent with `silent-disclosure`
+
 
 ### Requirement: Forcing paths render in Terraform attribute-path notation
 

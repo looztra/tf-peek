@@ -142,16 +142,19 @@ def test_escape_in_code_span_leaves_a_pipe_untouched() -> None:
     assert escape_in_code_span("a|b") == "a|b"
 
 
-def test_escape_in_code_span_collapses_line_breaks() -> None:
-    """CR, LF and CRLF all collapse so the fragment stays on one physical line."""
-    assert escape_in_code_span("a\nb") == "a\\nb"
-    assert escape_in_code_span("a\r\nb") == "a\\nb"
-    assert escape_in_code_span("a\rb") == "a\\nb"
+def test_escape_in_markdown_neutralizes_inline_markup() -> None:
+    """Entities display plan text literally without letting it participate in Markdown parsing."""
+    source = r"</details> & `x` * _ [ ] ! ~ \ $ |"
+    expected = r"&lt;/details> &amp; &#96;x&#96; &#42; &#95; &#91; &#93; &#33; &#126; &#92; &#36; |"
+    assert escape_in_markdown(source) == expected
 
 
-def test_escape_in_markdown_neutralizes_html_and_code_delimiters_as_entities() -> None:
-    """Markdown prose is HTML-capable, and an entity is inert yet still displays the character."""
-    assert escape_in_markdown("</details> & `x`") == "&lt;/details> &amp; &#96;x&#96;"
+def test_escapers_split_github_autolinks_and_references_without_changing_visible_text() -> None:
+    """Trusted comments break GitHub linkification in both dynamic-text contexts."""
+    source = "https://example.invalid www.example.invalid @octocat #123"
+    expected = "h<!-- -->ttps://example.invalid w<!-- -->ww.example.invalid <!-- -->@octocat <!-- -->#123"
+    assert escape_in_markdown(source) == expected
+    assert escape_in_html(source) == expected
 
 
 def test_escape_in_markdown_collapses_line_breaks() -> None:
@@ -312,6 +315,13 @@ def test_resolve_causation_ignores_forcing_paths_when_the_change_is_not_a_replac
     assert not causation.paths
     assert causation.reason is not None
     assert "for_each" in causation.reason
+
+
+def test_resolve_causation_does_not_interpret_a_replacement_reason_for_an_update() -> None:
+    """A replacement-only hint cannot contradict a non-replacement action classification."""
+    causation = resolve_causation([], "replace_because_tainted", mechanism=None, sensitivity=_NO_SENSITIVITY)
+    assert causation is not None
+    assert causation.reason == 'reason reported by Terraform: "replace_because_tainted"'
 
 
 def test_resolve_causation_treats_an_empty_reason_as_absent() -> None:

@@ -49,6 +49,14 @@ _KNOWN_REASONS: Final[dict[str, str]] = {
     "delete_because_no_move_target": "the resource is the target of a moved block with no corresponding configuration",
 }
 
+_REPLACEMENT_REASONS: Final = frozenset(
+    {
+        "replace_because_tainted",
+        "replace_by_request",
+        "replace_by_triggers",
+    }
+)
+
 # Neutral statement of the replacement mechanism. States the mechanism only: the consequence of
 # destroying before creating (downtime, data loss, a new secret value) depends on the resource
 # and is not knowable from the plan.
@@ -64,6 +72,30 @@ _MECHANISM_STATEMENTS: Final[dict[str, str]] = {
 # all. Neither cap withholds information: the full sorted list always lands in the block body.
 _SUMMARY_PATH_LIMIT: Final = 3
 _SUMMARY_CHAR_BUDGET: Final = 120
+
+# Inline Markdown delimiters. Numeric entities display the original character but cannot act as
+# syntax. A pipe is deliberately absent: it is inert in this paragraph context and stays unchanged.
+_MARKDOWN_ENTITIES: Final = str.maketrans(
+    {
+        "&": "&amp;",
+        "<": "&lt;",
+        "\\": "&#92;",
+        "`": "&#96;",
+        "*": "&#42;",
+        "_": "&#95;",
+        "[": "&#91;",
+        "]": "&#93;",
+        "!": "&#33;",
+        "~": "&#126;",
+        "$": "&#36;",
+    }
+)
+
+# GitHub autolinks URLs even after entity decoding and even inside raw-HTML `<summary>` content.
+# An invisible trusted HTML comment splits the parser's text node while preserving the displayed and
+# copied text exactly. Mentions and issue references need the same boundary in repository context.
+_GITHUB_AUTOLINK_PREFIX: Final = re.compile(r"(?i)\b(https?|ftp)(?=://)|\b(w)(?=ww\.)")
+_GITHUB_REFERENCE_START: Final = re.compile(r"(?<!&)(?=[@#][A-Za-z0-9])")
 
 
 def _render_step(step: object, *, first: bool) -> str:
@@ -128,39 +160,53 @@ def _collapse_newlines(text: str) -> str:
     return text.replace("\r\n", "\\n").replace("\r", "\\n").replace("\n", "\\n")
 
 
-def escape_in_code_span(text: str) -> str:
-    r"""Escape a fragment the template wraps in a Markdown code span.
+def _split_autolink_prefix(match: re.Match[str]) -> str:
+    """Split one GitHub autolink prefix without changing its rendered text."""
+    prefix = match.group()
+    return f"{prefix[0]}<!-- -->{prefix[1:]}"
 
-    A code span protects everything except its own delimiter, so only the backtick needs
-    neutralizing — and it cannot be neutralized with an entity, because CommonMark does not
-    decode entities inside a code span. It therefore becomes literal escape *text*
-    (``\u0060``), the one deliberately lossy substitution this module makes. CR/LF collapse so
-    the fragment cannot break a row, or the block, across physical lines.
+
+def _break_github_links(text: str) -> str:
+    """Prevent GitHub autolinks, mentions and issue references in escaped plan text."""
+    text = _GITHUB_AUTOLINK_PREFIX.sub(_split_autolink_prefix, text)
+    return _GITHUB_REFERENCE_START.sub("<!-- -->", text)
+
+
+def escape_in_code_span(text: str) -> str:
+    r"""Escape a forcing path the template wraps in a Markdown code span.
+
+    ``render_forcing_path`` JSON-encodes every non-identifier string step, so CR/LF cannot reach
+    this presentation boundary. A backtick is the only remaining delimiter: CommonMark does not
+    decode entities inside code spans, so it becomes literal escape text (``\u0060``).
     """
-    return _collapse_newlines(text).replace("`", r"\u0060")
+    return text.replace("`", r"\u0060")
 
 
 def escape_in_markdown(text: str) -> str:
     """Escape a fragment the template emits as Markdown paragraph prose.
 
-    The detail block is raw HTML, so ``<`` and ``&`` are live in the paragraphs inside it: a
-    stray ``</details>`` would close the enclosing collapsible and spill the rest of the block.
-    Entities are used rather than literal escape text because a Markdown entity is inert as a
-    delimiter yet still displays as the original character — the report keeps saying exactly what
-    Terraform reported. A backtick is entity-escaped for the same reason: it can no longer open a
-    code span, but it still reads as a backtick.
+    HTML and inline-Markdown delimiters become entities. GitHub autolinks after entity decoding, so
+    trusted invisible comments also split URL, mention and issue-reference prefixes. Both mechanisms
+    preserve the displayed text; pipes remain literal because they are ordinary paragraph content.
+    CR/LF collapse so the fragment cannot start a new block.
     """
-    return _collapse_newlines(text).replace("&", "&amp;").replace("<", "&lt;").replace("`", "&#96;")
+    escaped = _collapse_newlines(text).translate(_MARKDOWN_ENTITIES)
+    return _break_github_links(escaped)
 
 
 def escape_in_html(text: str) -> str:
     """Escape a fragment the template emits inside the ``<summary>`` element.
 
-    ``<summary>`` is raw HTML under ``autoescape=False``, so the full HTML escape set applies;
-    CR/LF collapse because a raw line break would break the "collapsed line" invariant the same
-    way it would in the Markdown body.
+    ``<summary>`` is raw HTML under ``autoescape=False``, so the full HTML escape set applies.
+    GitHub still autolinks text inside that block; trusted invisible comments split those prefixes
+    without changing rendered text. CR/LF collapse to preserve the single-line summary invariant.
     """
-    return html.escape(_collapse_newlines(text))
+    return _break_github_links(html.escape(_collapse_newlines(text)))
+
+
+def _reported_reason(code: str) -> str:
+    """Mark a reason code as uninterpreted Terraform output."""
+    return f'reason reported by Terraform: "{code}"'
 
 
 def phrase_reason(code: str) -> str:
@@ -172,9 +218,7 @@ def phrase_reason(code: str) -> str:
     release degrades a sentence instead of failing to render.
     """
     phrase = _KNOWN_REASONS.get(code)
-    if phrase is not None:
-        return phrase
-    return f'reason reported by Terraform: "{code}"'
+    return phrase if phrase is not None else _reported_reason(code)
 
 
 def _cap_summary_paths(paths: list[str]) -> tuple[list[str], int]:
@@ -225,9 +269,10 @@ def resolve_causation(
     """Resolve a resource's stated causation into neutral, renderable text.
 
     Forcing paths are rendered only for a replacement — ``mechanism`` carries that fact — because
-    a forcing path explains a replacement and nothing else; labelling one on an update would
-    assert a replacement that is not happening. A reason stays unconditional: a deletion
-    legitimately states ``delete_because_*``.
+    a forcing path explains a replacement and nothing else. Deletion reasons remain interpretable
+    without a replacement mechanism. A replacement-only reason attached to any other action is
+    surfaced as uninterpreted Terraform output instead of asserting a replacement that the action
+    classification contradicts.
 
     The narrow precedence rule then applies: paths plus ``replace_because_cannot_update`` render
     as paths only, because the reason is redundant with what the paths already identify; paths
@@ -237,6 +282,8 @@ def resolve_causation(
     """
     paths = render_forcing_paths(replace_paths, sensitivity=sensitivity) if mechanism is not None else []
     reason = phrase_reason(action_reason) if action_reason else None
+    if mechanism is None and action_reason in _REPLACEMENT_REASONS:
+        reason = _reported_reason(action_reason)
     if paths and action_reason == _REDUNDANT_REASON:
         reason = None
     if not paths and reason is None and mechanism is None:
