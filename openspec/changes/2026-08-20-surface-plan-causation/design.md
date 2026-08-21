@@ -150,12 +150,25 @@ behaviour was never specified — the current specs only fix `detail`'s default 
 requirement "detail field defaults to full"), so the new capability establishes it rather than
 changing it.
 
-**Sensitivity is unaffected, deliberately.** A replace path can point at an attribute masked as
-`(sensitive value)`. The path is the attribute's *name*, not its value, and Terraform's own output
-prints `# forces replacement` beside a redacted value, so rendering the path is neither a leak nor a
-divergence from Terraform's behaviour. `before_sensitive`/`after_sensitive` mark leaf *values*, never
-map keys, so the plan carries no signal that a key itself is sensitive and tf-peek will not invent
-one. `sensitive-value-masking` needs no change.
+**Sensitivity shares one policy with the diff table, and paths are cut to its granularity.** A replace
+path can point at an attribute masked as `(sensitive value)`, and it can also descend *into* one. The
+first case renders: the path is the attribute's *name*, not its value, and Terraform's own output
+prints `# forces replacement` beside a redacted value, so naming the attribute is neither a leak nor a
+divergence. The second case does not. An attribute-level `true` marker covers the whole value
+**including its map keys**, and `calculate_diff` masks the entire top-level attribute as soon as any
+leaf beneath it is truthy — so rendering `data.STRIPE_LIVE_KEY` beside a row reading
+`data = (sensitive value)` would publish a key the table deliberately withheld, and would be a second,
+fail-*open* sensitivity policy beside `is_sensitive`'s fail-closed one. The causation renderer
+therefore reuses `is_sensitive`/`marker_for_key` and reduces a path to its attribute name whenever
+that attribute's value is masked: exactly the granularity the table shows, so a rendered path can
+never name more than the row beside it. `sensitive-value-masking` itself needs no change; the
+obligation lives with the new capability, which states it.
+
+An earlier revision of this document asserted that `before_sensitive`/`after_sensitive` "mark leaf
+*values*, never map keys" and concluded that no truncation was needed. That premise is false for an
+attribute-level marker, and adversarial review (see `review.md`, F1) found the resulting leak. It is
+recorded here rather than deleted, because the failure was in the premise, not in the reasoning built
+on it.
 
 **Sorted and de-duplicated paths.** `replace_paths` order is provider-supplied and providers may emit
 duplicate or overlapping paths. Rendering them in arrival order is precisely the failure class of

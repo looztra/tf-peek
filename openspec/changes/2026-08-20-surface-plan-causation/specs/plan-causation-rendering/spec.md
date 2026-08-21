@@ -22,7 +22,8 @@ When a replaced resource's plan change states one or more replacement-forcing at
 #### Scenario: Non-replace changes state no forcing paths
 
 - **WHEN** a resource is being created, updated or deleted
-- **THEN** its detail block contains no replacement-forcing attribute path
+- **THEN** its detail block contains no replacement-forcing attribute path, even if the change states one
+- **THEN** its collapsed summary line contains no replacement-forcing attribute path
 
 ### Requirement: Forcing paths render in Terraform attribute-path notation
 
@@ -55,13 +56,19 @@ Rendered forcing paths SHALL appear in ascending lexical order of their rendered
 
 ### Requirement: The collapsed summary line carries a bounded number of forcing paths
 
-The collapsed summary line SHALL present at most a bounded number of forcing paths and, when it presents fewer than the total, SHALL indicate that further paths exist. The complete list SHALL always be present in the expanded detail block, so the bound never withholds information.
+The collapsed summary line SHALL present a bounded number of forcing paths and a bounded number of characters of them, and when it presents fewer than the total SHALL indicate that further paths exist. A single path exceeding the character bound SHALL be presented truncated rather than omitted, so the line always names something concrete. The complete list SHALL always be present in the expanded detail block, so neither bound withholds information.
 
 #### Scenario: More forcing paths than the summary line presents
 
 - **WHEN** a replaced resource states more forcing paths than the collapsed summary line presents
 - **THEN** the collapsed summary line indicates that further paths exist
 - **THEN** the expanded detail block lists every forcing path
+
+#### Scenario: One forcing path is longer than the summary line's character bound
+
+- **WHEN** a replaced resource states a forcing path whose rendered form exceeds the character bound
+- **THEN** the collapsed summary line presents that path truncated
+- **THEN** the expanded detail block presents it in full
 
 ### Requirement: Stated change reasons explain what forcing paths do not
 
@@ -116,12 +123,14 @@ Any other recognized or unrecognized reason SHALL remain visible alongside forci
 - **THEN** the report presents the forcing path
 - **THEN** the report also presents the stated reason
 
-### Requirement: Unrecognized change reasons are surfaced rather than dropped or rejected
+### Requirement: Unrecognized change reasons and path steps are surfaced rather than dropped or rejected
 
 Terraform documents change reasons as display hints whose set may grow. An unrecognized reason SHALL
 NOT prevent the plan from being read and SHALL NOT be silently discarded: the report SHALL render
 successfully and present the reason code as reported by Terraform, marked as such. This requirement
-also applies when forcing paths are present.
+also applies when forcing paths are present. A forcing path step of an unexpected type, and an
+explicitly null forcing-path list, SHALL likewise not prevent the plan from being read: losing a
+display hint SHALL never cost the whole report.
 
 #### Scenario: Plan states a reason code this version does not recognize
 
@@ -134,6 +143,17 @@ also applies when forcing paths are present.
 
 - **WHEN** a replaced resource states forcing paths and an unrecognized reason code
 - **THEN** the report presents both the forcing paths and the reason code as reported by Terraform
+
+#### Scenario: Plan states a forcing-path step of an unexpected type
+
+- **WHEN** a replaced resource states a forcing path containing a step that is neither a name nor an index
+- **THEN** the report renders successfully
+- **THEN** that step is presented as the plan stated it, rather than as a name or an index it is not
+
+#### Scenario: Plan states an explicitly null forcing-path list
+
+- **WHEN** a resource change states `replace_paths` as null rather than omitting it
+- **THEN** the report renders successfully, presenting no forcing path for that resource
 
 ### Requirement: A change with no stated cause receives no explanation
 
@@ -183,7 +203,7 @@ A resource whose rule suppresses attribute value detail SHALL still receive its 
 
 ### Requirement: Explanations cannot corrupt report structure or inject markup
 
-An attribute path can contain a map key holding arbitrary text. Rendered explanations and paths SHALL NOT be able to add a Markdown table column, break a table row across physical lines, close a code span, or introduce markup into the collapsed summary line — in every context where the report presents them.
+An attribute path can contain a map key holding arbitrary text, and a stated reason code is arbitrary text too. Rendered explanations and paths SHALL NOT be able to add a Markdown table column, break a table row across physical lines, close a code span, open or close any element of the report's own HTML, or introduce markup — in every context where the report presents them, the Markdown body as well as the collapsed summary line. Escaping SHALL preserve what the plan stated wherever a context allows it: a character that cannot alter the rendering SHALL NOT be rewritten.
 
 #### Scenario: Path contains a pipe and a line break
 
@@ -197,12 +217,24 @@ An attribute path can contain a map key holding arbitrary text. Rendered explana
 - **THEN** the collapsed summary line presents that text as literal content rather than as markup
 - **THEN** no code span opened by the report is closed by the key's content
 
+#### Scenario: Stated reason contains markup and an element-closing tag
+
+- **WHEN** a resource change states a reason code holding a line feed, an ampersand, a backtick and text closing one of the report's own HTML elements
+- **THEN** the report's HTML elements remain balanced, and the reason renders as literal content in both contexts
+- **THEN** the explanation stays on one physical line
+
 ### Requirement: Explanations do not weaken sensitive-value protection
 
-A forcing path may name an attribute whose value the report masks. The report SHALL present the path — an attribute name is not its value, and Terraform's own output likewise names a forcing attribute beside a redacted value — while continuing to mask the value.
+A forcing path may name an attribute whose value the report masks. The report SHALL present the named attribute — an attribute name is not its value, and Terraform's own output likewise names a forcing attribute beside a redacted value — while continuing to mask the value. A forcing path that descends *into* a masked value SHALL be reduced to the attribute the report masks, because the keys inside a masked value are part of what the mask covers: a rendered path SHALL NOT name anything the attribute table does not already show. The report SHALL apply the same fail-closed masking policy to paths as it applies to values, rather than a second policy of its own.
 
 #### Scenario: Forcing path names a sensitive attribute
 
 - **WHEN** a replaced resource states a forcing path naming an attribute marked sensitive
 - **THEN** the report presents the forcing path
+- **THEN** that attribute's before and after values remain masked
+
+#### Scenario: Forcing path descends into a masked value
+
+- **WHEN** a replaced resource states a forcing path naming a key inside an attribute whose value is masked
+- **THEN** the report presents the masked attribute's name and not the key inside it
 - **THEN** that attribute's before and after values remain masked
