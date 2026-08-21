@@ -3,21 +3,22 @@
   "terraform_version": "1.9.5",
   "resource_changes": [
     {
-      "address": "aws_launch_template.cbd",
+      "address": "aws_instance.updated_with_paths",
       "module_address": "root",
       "mode": "managed",
-      "type": "aws_launch_template",
-      "name": "cbd",
+      "type": "aws_instance",
+      "name": "updated_with_paths",
       "provider_name": "registry.terraform.io/hashicorp/aws",
       "change": {
-        "actions": ["create", "delete"],
-        "before": { "image_id": "ami-old" },
-        "after": { "image_id": "ami-new" },
+        "actions": ["update"],
+        "before": { "ami": "ami-old" },
+        "after": { "ami": "ami-new" },
         "after_unknown": null,
         "before_sensitive": false,
         "after_sensitive": false,
-        "replace_paths": [["image_id"]]
-      }
+        "replace_paths": [["ami"]]
+      },
+      "action_reason": "replace_because_tainted"
     }
   ]
 }

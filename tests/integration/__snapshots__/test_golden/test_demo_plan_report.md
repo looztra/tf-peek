@@ -114,7 +114,7 @@
 
 *`google_project_iam_member.viewer`*
 
-> ℹ️ *Details hidden by configuration (filtered resource).*
+> ℹ️ *Attribute values hidden by configuration (filtered resource).*
 
 
 </details>
@@ -165,7 +165,7 @@
 
 *`google_project_iam_member.ci_deployer`*
 
-> ℹ️ *Details hidden by configuration (filtered resource).*
+> ℹ️ *Attribute values hidden by configuration (filtered resource).*
 
 
 </details>
@@ -177,7 +177,7 @@
 
 *`google_secret_manager_secret_iam_member.api_db_password`*
 
-> ℹ️ *Details hidden by configuration (filtered resource).*
+> ℹ️ *Attribute values hidden by configuration (filtered resource).*
 
 
 </details>

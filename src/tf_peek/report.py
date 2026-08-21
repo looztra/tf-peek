@@ -8,7 +8,7 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader
 
 from .actions import ACTION_ORDER, get_emoji
-from .causation import mechanism_statement, resolve_causation
+from .causation import escape_in_code_span, escape_in_html, escape_in_markdown, resolve_causation
 from .config import PeekConfig, resolve_tier
 from .diff import calculate_diff
 from .formatting import format_report_value
@@ -111,9 +111,11 @@ def build_report_data(plan: TerraformPlan, config: PeekConfig, *, show_sensitive
                 for attr, val in raw_diff.items()
             }
 
-        causation = resolve_causation(rc.change.replace_paths, rc.action_reason)
-        mechanism = (
-            mechanism_statement(destroy_before_create=rc.destroy_before_create) if action == "replace" else None
+        causation = resolve_causation(
+            rc.change.replace_paths,
+            rc.action_reason,
+            mechanism=rc.replacement_mechanism,
+            sensitivity=None if show_sensitive else (rc.change.before_sensitive, rc.change.after_sensitive),
         )
 
         resource_entry: dict[str, Any] = {
@@ -124,7 +126,6 @@ def build_report_data(plan: TerraformPlan, config: PeekConfig, *, show_sensitive
             "is_summarized": is_summarized,
             "diff": diff,
             "causation": causation,
-            "mechanism": mechanism,
         }
 
         if rule.tier == "critical" and action in rule.critical_on:
@@ -160,6 +161,9 @@ def render_report(data: ReportData) -> str:
         trim_blocks=True,
         lstrip_blocks=True,
     )
+    env.filters["in_code_span"] = escape_in_code_span
+    env.filters["in_markdown"] = escape_in_markdown
+    env.filters["in_html"] = escape_in_html
     template = env.get_template("report.md.j2")
     return (
         template.render(

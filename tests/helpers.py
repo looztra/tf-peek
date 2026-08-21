@@ -21,7 +21,7 @@ def rc_entry(  # noqa: PLR0913, PLR0917
     before: dict[str, Any] | None = None,
     after: dict[str, Any] | None = None,
     module: str = "root",
-    replace_paths: list[list[str | int]] | None = None,
+    replace_paths: list[list[Any]] | None = None,
     action_reason: str | None = None,
 ) -> dict[str, Any]:
     """Build a minimal resource_change entry."""
