@@ -259,7 +259,7 @@ detail = "summary"
     report = run_generate(plan, config, tmp_path)
 
     assert "google_project_iam_member.binding1" in report
-    assert "Details hidden by configuration" in report
+    assert "Attribute values hidden by configuration" in report
     # The actual attribute values should NOT be present in the diff table
     assert "roles/viewer" not in report
 
@@ -291,7 +291,7 @@ detail = "summary"
 """
     report = run_generate(plan, config, tmp_path)
 
-    assert "Details hidden by configuration" in report
+    assert "Attribute values hidden by configuration" in report
     assert "roles/viewer" not in report
     assert "roles/editor" not in report
     assert "**Forces replacement:** `role`" in report

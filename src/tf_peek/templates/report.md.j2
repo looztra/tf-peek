@@ -1,21 +1,24 @@
+{% macro causation_summary(res) -%}
+{%- if res.causation and (res.causation.summary_paths or res.causation.reason) %} — {% if res.causation.summary_paths %}forces replacement: <code>{{ res.causation.summary_paths | map('in_html') | join('</code>, <code>') }}</code>{% if res.causation.summary_remainder %} (+{{ res.causation.summary_remainder }} more){% endif %}{% endif %}{% if res.causation.summary_paths and res.causation.reason %}; {% endif %}{% if res.causation.reason %}{{ res.causation.reason | in_html }}{% endif %}{% endif %}
+{%- endmacro %}
 {% macro causation_callout(res) %}
-{% if res.causation and res.causation.body_paths %}
-**Forces replacement:** `{{ res.causation.body_paths | join('`, `') }}`
+{% if res.causation.paths %}
+**Forces replacement:** `{{ res.causation.paths | map('in_code_span') | join('`, `') }}`
 
 {% endif %}
-{% if res.causation and res.causation.body_reason %}
-**Reason:** {{ res.causation.body_reason }}
+{% if res.causation.reason %}
+**Reason:** {{ res.causation.reason | in_markdown }}
 
 {% endif %}
-{% if res.mechanism %}
-**Mechanism:** {{ res.mechanism }}
+{% if res.causation.mechanism %}
+**Mechanism:** {{ res.causation.mechanism }}
 
 {% endif %}
 {% endmacro %}
 {% macro details_table(res, action) %}
-{% if res.causation or res.mechanism %}{{ causation_callout(res) }}{% endif %}
+{% if res.causation %}{{ causation_callout(res) }}{% endif %}
 {% if res.is_summarized %}
-> ℹ️ *Details hidden by configuration (filtered resource).*
+> ℹ️ *Attribute values hidden by configuration (filtered resource).*
 {% elif res.diff %}
 {% if action == 'create' %}
 | Property | Value |
@@ -52,7 +55,7 @@
 
 {% for res in resources %}
 <details>
-<summary><b>🚨 {{ res.short_address }}</b>{% if res.causation %} — {{ res.causation.summary_html }}{% endif %}</summary>
+<summary><b>🚨 {{ res.short_address }}</b>{{ causation_summary(res) }}</summary>
 
 *`{{ res.address }}`*
 
@@ -133,7 +136,7 @@
 
 {% for res in resources %}
 <details>
-<summary><b>{{ res.short_address }}</b>{% if res.causation %} — {{ res.causation.summary_html }}{% endif %}</summary>
+<summary><b>{{ res.short_address }}</b>{{ causation_summary(res) }}</summary>
 
 *`{{ res.address }}`*
 

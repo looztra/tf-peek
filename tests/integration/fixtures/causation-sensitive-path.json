@@ -18,6 +18,23 @@
         "after_sensitive": { "password": true },
         "replace_paths": [["password"]]
       }
+    },
+    {
+      "address": "aws_lambda_function.env",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "aws_lambda_function",
+      "name": "env",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["delete", "create"],
+        "before": { "environment": { "STRIPE_LIVE_KEY": "sk_live_old" } },
+        "after": { "environment": { "STRIPE_LIVE_KEY": "sk_live_new" } },
+        "after_unknown": null,
+        "before_sensitive": { "environment": true },
+        "after_sensitive": { "environment": true },
+        "replace_paths": [["environment", "STRIPE_LIVE_KEY"]]
+      }
     }
   ]
 }

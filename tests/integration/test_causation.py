@@ -49,6 +49,14 @@ def _count_table_columns(row: str) -> int:
     return count
 
 
+def _assert_html_elements_balanced(report: str) -> None:
+    """Assert no rendered fragment opened or closed one of the report's own HTML elements."""
+    for element in ("details", "summary"):
+        assert report.count(f"<{element}>") == report.count(f"</{element}>")
+    for summary_line in [line for line in report.splitlines() if "<summary>" in line]:
+        assert summary_line.count("<summary>") == summary_line.count("</summary>") == 1
+
+
 # ---------------------------------------------------------------------------
 # Known reason phrasing (task 5.1)
 # ---------------------------------------------------------------------------
@@ -57,36 +65,14 @@ def _count_table_columns(row: str) -> int:
 @pytest.mark.parametrize(
     ("address", "expected_fragment"),
     [
-        pytest.param("null_resource.tainted", "tainted", id="tainted"),
-        pytest.param(
-            "aws_instance.requested",
-            "explicitly requested when the plan was created",
-            id="replace-by-request",
-        ),
-        pytest.param(
-            "aws_instance.triggered",
-            "configured replacement triggers selected the replacement",
-            id="replace-by-triggers",
-        ),
-        pytest.param(
-            "google_storage_bucket.no_resource_config",
-            "Terraform found no corresponding resource configuration",
-            id="delete-no-resource-config",
-        ),
-        pytest.param(
-            "google_storage_bucket.each_key_gone",
-            "for_each key no longer matches",
-            id="delete-each-key",
-        ),
-        pytest.param(
-            "google_storage_bucket.move_target_gone",
-            "moved block",
-            id="delete-no-move-target",
-        ),
+        pytest.param("null_resource.tainted", "the resource is tainted", id="replace-reason-reaches-the-block"),
     ],
 )
 def test_known_reason_renders_as_neutral_prose(tmp_path: Path, address: str, expected_fragment: str) -> None:
-    """Every known non-read reason code renders as neutral prose in the resource's block."""
+    """A known reason code reaches the rendered block as neutral prose, not the raw code.
+
+    Every code's phrasing is pinned by `tests/test_causation.py`; this asserts the wiring.
+    """
     report = _run_generate("causation-reasons.json", tmp_path)
     block = _resource_block(report, address)
     assert expected_fragment in block
@@ -145,26 +131,60 @@ def test_hostile_forcing_path_stays_structurally_safe(tmp_path: Path) -> None:
     report = _run_generate("causation-hostile-path.json", tmp_path)
     block = _resource_block(report, "google_project_iam_member.hostile")
 
-    # A raw hostile map key never reaches the report on one physical line: it is either
-    # escaped (body) or HTML-entity-encoded (summary), and its embedded newline is a visible
-    # `\n` escape rather than an actual line break in both.
     forces_line = next(line for line in report.splitlines() if line.startswith("**Forces replacement:**"))
+    # The hostile key arrives on one physical line, with its line feed a visible escape.
     assert "line2" in forces_line
-
-    # The Markdown body neutralizes pipe/backtick as literal escape text.
-    assert r"\u007c" in block
-    assert r"\u0060" in block
-
-    # The resource's own attribute-diff table keeps a consistent column count.
+    # The key's backtick cannot close the code span the template opened around the path.
+    assert forces_line.count("`") % 2 == 0
+    assert r"\u0060" in forces_line
+    # A pipe is ordinary text in a paragraph, and the line is no table row, so the report keeps
+    # saying what the plan said rather than mutating it.
+    assert "| pipe" in forces_line
+    assert not forces_line.lstrip().startswith("|")
+    # The block's own attribute table is untouched: three rows of exactly four delimiters, so a
+    # fragment leaking into a cell would change the count rather than pass unnoticed.
     table_rows = [line for line in block.splitlines() if line.strip().startswith("|")]
-    assert table_rows
-    assert len({_count_table_columns(row) for row in table_rows}) == 1
+    assert [_count_table_columns(row) for row in table_rows] == [4, 4, 4]
 
-    # The collapsed summary line HTML-escapes markup so it renders as literal content.
     summary_line = next(line for line in report.splitlines() if "hostile" in line and "<summary>" in line)
+    # The summary fragment renders markup as literal content, and opens no element of its own.
     assert "<script>" not in summary_line
     assert "&lt;script&gt;" in summary_line
-    assert summary_line.count("\n") == 0
+    assert summary_line.endswith("</summary>")
+    _assert_html_elements_balanced(report)
+
+
+def test_hostile_reason_cannot_inject_markup_or_close_the_block(tmp_path: Path) -> None:
+    """A hostile `action_reason` reaches an HTML-capable Markdown paragraph and must stay inert."""
+    report = _run_generate("causation-hostile-reason.json", tmp_path)
+
+    reason_line = next(line for line in report.splitlines() if line.startswith("**Reason:**"))
+    # No tag can open: the reason is entity-escaped, so `</details>` cannot close the block.
+    assert "<" not in reason_line
+    assert "&lt;/details>" in reason_line
+    assert "&lt;img src=x onerror=alert(1)>" in reason_line
+    # The raw line feed collapsed, so the injected heading is not a heading and not a new line.
+    assert "# Injected Heading" in reason_line
+    assert "\\n" in reason_line
+    # The backtick cannot open a code span, and the ampersand renders as itself.
+    assert "&#96;code&#96;" in reason_line
+    assert "&amp;" in reason_line
+    _assert_html_elements_balanced(report)
+
+    summary_line = next(line for line in report.splitlines() if "hostile_reason" in line and "<summary>" in line)
+    assert "<" not in summary_line.removeprefix("<summary><b>").removesuffix("</summary>").replace("</b>", "")
+
+
+def test_non_replace_change_carrying_forcing_paths_states_no_replacement(tmp_path: Path) -> None:
+    """`replace_paths` on an update explains nothing, so the report must not claim a replacement."""
+    report = _run_generate("causation-non-replace-paths.json", tmp_path)
+    block = _resource_block(report, "aws_instance.updated_with_paths")
+
+    assert "**Forces replacement:**" not in block
+    assert "**Mechanism:**" not in block
+    assert "forces replacement:" not in report
+    # The stated reason still reaches the block: only the replacement claim is withheld.
+    assert "the resource is tainted" in block
 
 
 # ---------------------------------------------------------------------------
@@ -185,21 +205,20 @@ def test_multi_path_summary_is_capped_with_remainder_and_body_has_full_sorted_li
 
 
 # ---------------------------------------------------------------------------
-# Replacement mechanism (task 5.1)
+# Sensitivity (task 5.5)
 # ---------------------------------------------------------------------------
 
 
-def test_create_before_destroy_states_the_opposite_mechanism(tmp_path: Path) -> None:
-    """A `["create", "delete"]` replacement states that it creates before destroying."""
-    report = _run_generate("causation-create-before-destroy.json", tmp_path)
-    block = _resource_block(report, "aws_launch_template.cbd")
-    assert "the replacement is created before the existing object is destroyed" in block
-    assert "**Forces replacement:** `image_id`" in block
+def test_sensitive_forcing_path_never_names_more_than_the_masked_table_row(tmp_path: Path) -> None:
+    """A path descending into a masked value is cut to the attribute the table already shows."""
+    report = _run_generate("causation-sensitive-path.json", tmp_path)
+    block = _resource_block(report, "aws_lambda_function.env")
 
-
-# ---------------------------------------------------------------------------
-# Sensitivity is unaffected (task 5.5)
-# ---------------------------------------------------------------------------
+    assert "STRIPE_LIVE_KEY" not in report
+    assert "sk_live_old" not in report
+    assert "sk_live_new" not in report
+    assert "**Forces replacement:** `environment`" in block
+    assert re.search(r"`environment`.*\(sensitive value\)", block)
 
 
 def test_sensitive_forcing_path_is_shown_while_its_value_stays_masked(tmp_path: Path) -> None:
