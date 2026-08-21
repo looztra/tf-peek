@@ -1,0 +1,23 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.5",
+  "resource_changes": [
+    {
+      "address": "aws_launch_template.cbd",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "aws_launch_template",
+      "name": "cbd",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create", "delete"],
+        "before": { "image_id": "ami-old" },
+        "after": { "image_id": "ami-new" },
+        "after_unknown": null,
+        "before_sensitive": false,
+        "after_sensitive": false,
+        "replace_paths": [["image_id"]]
+      }
+    }
+  ]
+}

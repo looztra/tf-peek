@@ -1,0 +1,125 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.5",
+  "resource_changes": [
+    {
+      "address": "null_resource.tainted",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "null_resource",
+      "name": "tainted",
+      "provider_name": "registry.terraform.io/hashicorp/null",
+      "change": {
+        "actions": ["delete", "create"],
+        "before": { "triggers": "a" },
+        "after": { "triggers": "a" },
+        "after_unknown": null,
+        "before_sensitive": false,
+        "after_sensitive": false
+      },
+      "action_reason": "replace_because_tainted"
+    },
+    {
+      "address": "aws_instance.requested",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "requested",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["delete", "create"],
+        "before": { "ami": "ami-old" },
+        "after": { "ami": "ami-old" },
+        "after_unknown": null,
+        "before_sensitive": false,
+        "after_sensitive": false
+      },
+      "action_reason": "replace_by_request"
+    },
+    {
+      "address": "aws_instance.triggered",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "triggered",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["delete", "create"],
+        "before": { "ami": "ami-old" },
+        "after": { "ami": "ami-old" },
+        "after_unknown": null,
+        "before_sensitive": false,
+        "after_sensitive": false
+      },
+      "action_reason": "replace_by_triggers"
+    },
+    {
+      "address": "google_storage_bucket.no_resource_config",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "google_storage_bucket",
+      "name": "no_resource_config",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": ["delete"],
+        "before": { "name": "orphaned-bucket" },
+        "after": null,
+        "after_unknown": null,
+        "before_sensitive": false,
+        "after_sensitive": false
+      },
+      "action_reason": "delete_because_no_resource_config"
+    },
+    {
+      "address": "google_storage_bucket.each_key_gone",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "google_storage_bucket",
+      "name": "each_key_gone",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": ["delete"],
+        "before": { "name": "removed-key-bucket" },
+        "after": null,
+        "after_unknown": null,
+        "before_sensitive": false,
+        "after_sensitive": false
+      },
+      "action_reason": "delete_because_each_key"
+    },
+    {
+      "address": "google_storage_bucket.move_target_gone",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "google_storage_bucket",
+      "name": "move_target_gone",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": ["delete"],
+        "before": { "name": "moved-away-bucket" },
+        "after": null,
+        "after_unknown": null,
+        "before_sensitive": false,
+        "after_sensitive": false
+      },
+      "action_reason": "delete_because_no_move_target"
+    },
+    {
+      "address": "google_storage_bucket.future_reason",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "google_storage_bucket",
+      "name": "future_reason",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": ["delete"],
+        "before": { "name": "mystery-bucket" },
+        "after": null,
+        "after_unknown": null,
+        "before_sensitive": false,
+        "after_sensitive": false
+      },
+      "action_reason": "delete_because_a_future_terraform_release"
+    }
+  ]
+}

@@ -50,7 +50,10 @@ example, IAM bindings, firewall rules, or Kubernetes deployments.
 
 **The `detail` option**: For resource types that produce verbose diffs with many attributes (such as
 IAM binding types), you can set `detail = "summary"` to show only the resource address without the
-diff. This reduces visual noise while keeping the resource visible.
+diff. This reduces visual noise while keeping the resource visible. `summary` suppresses attribute
+*values* only: if the resource is being replaced or deleted, its stated forcing paths, its stated
+change reason and its replacement mechanism (for a replace) still render, because they are metadata
+about *why* the change happened, not the values being hidden.
 
 ### Critical
 

@@ -1,0 +1,23 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.5",
+  "resource_changes": [
+    {
+      "address": "google_project_iam_member.hostile",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "google_project_iam_member",
+      "name": "hostile",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": ["delete", "create"],
+        "before": { "role": "roles/viewer" },
+        "after": { "role": "roles/editor" },
+        "after_unknown": null,
+        "before_sensitive": false,
+        "after_sensitive": false,
+        "replace_paths": [["labels", "a | pipe ` backtick <script>alert(1)</script>\nline2"]]
+      }
+    }
+  ]
+}

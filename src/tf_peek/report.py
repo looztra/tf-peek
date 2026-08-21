@@ -8,6 +8,7 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader
 
 from .actions import ACTION_ORDER, get_emoji
+from .causation import mechanism_statement, resolve_causation
 from .config import PeekConfig, resolve_tier
 from .diff import calculate_diff
 from .formatting import format_report_value
@@ -110,6 +111,11 @@ def build_report_data(plan: TerraformPlan, config: PeekConfig, *, show_sensitive
                 for attr, val in raw_diff.items()
             }
 
+        causation = resolve_causation(rc.change.replace_paths, rc.action_reason)
+        mechanism = (
+            mechanism_statement(destroy_before_create=rc.destroy_before_create) if action == "replace" else None
+        )
+
         resource_entry: dict[str, Any] = {
             "address": rc.address,
             "short_address": f"{rc.type}.{rc.name}",
@@ -117,6 +123,8 @@ def build_report_data(plan: TerraformPlan, config: PeekConfig, *, show_sensitive
             "emoji": get_emoji(action),
             "is_summarized": is_summarized,
             "diff": diff,
+            "causation": causation,
+            "mechanism": mechanism,
         }
 
         if rule.tier == "critical" and action in rule.critical_on:

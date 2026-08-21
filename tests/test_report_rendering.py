@@ -262,3 +262,37 @@ detail = "summary"
     assert "Details hidden by configuration" in report
     # The actual attribute values should NOT be present in the diff table
     assert "roles/viewer" not in report
+
+
+# ---------------------------------------------------------------------------
+# Integration: causation survives detail = summary
+# ---------------------------------------------------------------------------
+
+
+def test_summarized_replace_keeps_forcing_path_and_mechanism(tmp_path: Path) -> None:
+    """A summarized replaced resource hides values but keeps its causation and mechanism."""
+    plan = make_plan(
+        [
+            rc_entry(
+                "google_project_iam_member",
+                "binding1",
+                ["delete", "create"],
+                before={"role": "roles/viewer"},
+                after={"role": "roles/editor"},
+                replace_paths=[["role"]],
+            ),
+        ]
+    )
+    config = """
+[[resources]]
+match_type = "google_project_iam_member"
+tier = "normal"
+detail = "summary"
+"""
+    report = run_generate(plan, config, tmp_path)
+
+    assert "Details hidden by configuration" in report
+    assert "roles/viewer" not in report
+    assert "roles/editor" not in report
+    assert "**Forces replacement:** `role`" in report
+    assert "the existing object is destroyed before its replacement is created" in report

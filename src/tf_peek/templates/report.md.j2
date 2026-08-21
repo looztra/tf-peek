@@ -1,4 +1,19 @@
+{% macro causation_callout(res) %}
+{% if res.causation and res.causation.body_paths %}
+**Forces replacement:** `{{ res.causation.body_paths | join('`, `') }}`
+
+{% endif %}
+{% if res.causation and res.causation.body_reason %}
+**Reason:** {{ res.causation.body_reason }}
+
+{% endif %}
+{% if res.mechanism %}
+**Mechanism:** {{ res.mechanism }}
+
+{% endif %}
+{% endmacro %}
 {% macro details_table(res, action) %}
+{% if res.causation or res.mechanism %}{{ causation_callout(res) }}{% endif %}
 {% if res.is_summarized %}
 > ℹ️ *Details hidden by configuration (filtered resource).*
 {% elif res.diff %}
@@ -37,7 +52,7 @@
 
 {% for res in resources %}
 <details>
-<summary><b>🚨 {{ res.short_address }}</b></summary>
+<summary><b>🚨 {{ res.short_address }}</b>{% if res.causation %} — {{ res.causation.summary_html }}{% endif %}</summary>
 
 *`{{ res.address }}`*
 
@@ -118,7 +133,7 @@
 
 {% for res in resources %}
 <details>
-<summary><b>{{ res.short_address }}</b></summary>
+<summary><b>{{ res.short_address }}</b>{% if res.causation %} — {{ res.causation.summary_html }}{% endif %}</summary>
 
 *`{{ res.address }}`*
 
