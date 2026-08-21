@@ -72,18 +72,22 @@ No **BREAKING** changes: additive plan fields and additive report content.
 
 ### Modified Capabilities
 
-None. The change adds report content without changing an existing capability's requirements.
+- `resource-tier-config`: its `detail` requirement is narrowed to attribute *values*. `summary`
+  suppresses values and keeps the plan's own explanation of the change, and the in-report notice says
+  so. The setting's observable contract is stated where the setting is specified rather than being
+  redefined from another capability's requirements.
 
 Deliberately **not** modified:
 
-- `resource-tier-config` — no report option or reason-based policy is added. Existing tiers remain the
-  sole repository-defined risk axis.
+- `resource-tier-config`'s tiering itself — no report option or reason-based policy is added, and no
+  rule field changes. Existing tiers remain the sole repository-defined risk axis; only the meaning of
+  `detail = "summary"` is narrowed, above.
 - `critical-section-rendering` — its requirements govern placement and grouping (before the summary,
   action then type). Causation is additive content inside a block whose position is unchanged.
 - `safe-value-rendering` — its requirements are scoped to attribute *values*. A path step is not a
   value, and the `<summary>` HTML context it never covers needs `<` and `&` handling that the
   table-cell rules do not. The new capability carries its own escaping requirement and cites this one
-  as the established discipline.
+  as the established discipline. `format_report_value` is unchanged.
 - `deterministic-report-output` — "byte-identical output for identical input" already binds the new
   content; the sorting and de-duplication requirement lives with the paths it orders.
 - `cli-invocation` — no new flags or configuration options.
@@ -109,5 +113,9 @@ Deliberately **not** modified:
 - **Tests**: unit coverage for the path formatter, neutral reason phrasing and the narrow precedence
   rule; integration coverage for both rendering contexts and unknown-code passthrough.
 - **Docs**: `docs/explanation/resource-tiers.md` and the study's §7 P1 1.3 status row.
+- **Sensitivity**: `is_sensitive`/`marker_for_key` (`src/tf_peek/diff.py`) become public so the
+  causation renderer applies the *same* fail-closed masking policy as the diff table instead of a
+  second one; a forcing path is cut to its attribute name when that attribute's value is masked.
 - **No changes** to `src/tf_peek/config.py`, `config.toml`, `resolve_tier`, `ResourceRule`, the `Action`
-  enum, exit codes, `docs/reference/configuration.md`, or `docs/reference/cli.md`.
+  enum, exit codes, or `docs/reference/cli.md`. `docs/reference/configuration.md` gains the narrowed
+  `detail = "summary"` description that the `resource-tier-config` delta specifies.

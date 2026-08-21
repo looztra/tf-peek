@@ -98,3 +98,36 @@
       duplicate and unsorted forcing paths in separate processes under differing `PYTHONHASHSEED`
       values and confirm byte-identical output
 - [x] 7.4 Run `openspec validate 2026-08-20-surface-plan-causation --strict`
+
+## 8. Adversarial-review remediation
+
+Findings, evidence and rationale: `review.md`. Rejected findings are recorded there and deliberately
+not actioned here.
+
+- [x] 8.1 (F1) Make `is_sensitive`/`marker_for_key` public in `diff.py` and reduce a forcing path to
+      its attribute name whenever that attribute's value is masked, so paths and values share one
+      fail-closed policy; fixture `causation-sensitive-path.json` gains a descending path
+- [x] 8.2 (F2, F8, F10, F13) Make `Causation` neutral data and move escaping and markup into the
+      template: `in_code_span`, `in_markdown` (entity-escapes `&`, `<`, backtick) and `in_html`
+      (`html.escape`) registered as Jinja filters, plus a `causation_summary` macro; add
+      `causation-hostile-reason.json`
+- [x] 8.3 (F3) Render forcing paths only for a replacement, driven by the mechanism tri-state; add
+      `causation-non-replace-paths.json`
+- [x] 8.4 (F4) Add the `resource-tier-config` MODIFIED delta, correct `proposal.md`'s capability and
+      impact claims, fix `docs/reference/configuration.md`, and reword the in-report notice to
+      "Attribute values hidden by configuration"
+- [x] 8.5 (F5) Replace the vacuous hostile-path assertions with structural ones: zero cell delimiters
+      on the causation line, even backtick count, exact table column counts, balanced HTML elements
+- [x] 8.6 (F6) Accept an explicit null and any step type in `replace_paths`, rendering an unexpected
+      step as a JSON subscript rather than failing the parse; match `bool` before `int`
+- [x] 8.7 (F7) Replace `destroy_before_create` with the total
+      `replacement_mechanism: Literal["destroy_first", "create_first"] | None`
+- [x] 8.8 (F9, F12) Drop forcing paths that render to nothing; treat an empty `action_reason` as absent
+- [x] 8.9 (F11) Delete the unreachable `replace_because_cannot_update` phrasing, keeping the
+      paths-scoped suppression so a pathless occurrence degrades to the passthrough sentence
+- [x] 8.10 (F14) Bound the collapsed summary line by rendered characters as well as path count,
+      truncating a single over-long path
+- [x] 8.11 (F15) Delete the tests that cannot fail independently and the fixtures subsumed by the
+      goldens; replace the `replace_paths` round-trip test with one defending the new validator
+- [x] 8.12 Update the spec deltas and `design.md` for the corrected sensitivity premise and the new
+      requirements, then re-run every gate in section 7
