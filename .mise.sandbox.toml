@@ -26,7 +26,7 @@
 # part of this same resolved toolset. mise's core Go backend downloads from
 # https://dl.google.com/go, not GitHub, so this stays GitHub-free.
 [tools]
-go = "1.25"
+go = "1.27.0"
 
 [tool_alias]
 bats = "npm:bats"
