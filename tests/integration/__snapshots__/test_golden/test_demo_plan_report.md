@@ -40,9 +40,13 @@
 #### `google_sql_database_instance`
 
 <details>
-<summary><b>🚨 google_sql_database_instance.prod</b></summary>
+<summary><b>🚨 google_sql_database_instance.prod</b> — forces replacement: <code>settings[0].tier</code></summary>
 
 *`google_sql_database_instance.prod`*
+
+**Forces replacement:** `settings[0].tier`
+
+**Mechanism:** the existing object is destroyed before its replacement is created
 
 | Property | Before | After |
 | :--- | :--- | :--- |

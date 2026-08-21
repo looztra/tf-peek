@@ -213,9 +213,10 @@ bug per line-of-fix in the repo.
 
 **M1 — Plan data left on the floor.** Only `resource_changes` is parsed. Ignored:
 
-- **`replace_paths`** — *the* answer to "why is this being replaced?", the question a reviewer facing
-  a 🚨 replace most urgently needs answered. tf-peek has a Critical Changes section that
-  conspicuously fails to explain its own criticality. Highest-value gap in the list.
+- ~~**`replace_paths`**~~ — ✅ Done — `changes/2026-08-20-surface-plan-causation`. Was *the* answer to
+  "why is this being replaced?", the question a reviewer facing a 🚨 replace most urgently needs
+  answered; also shipped neutral `action_reason` phrasing, the replacement-mechanism callout and
+  causation surviving `detail = "summary"`, beyond the original recommendation.
 - `output_changes` — output diffs are frequently the human-meaningful part of a plan.
 - `resource_drift` — out-of-band changes; increasingly a first-class review concern.
 - `change.importing` / `moved` blocks (TF 1.5+) — imports will misrender.
@@ -390,7 +391,7 @@ This is the moat. Prioritise 1.1 and 1.2 — they are what make tf-peek *not* a 
 | :--- | :--- | :--- | :--- |
 | 1.1 | **`--fail-on-critical` / `--exit-code`** — non-zero when a `critical_on` action is present. Turns the tool into a CI gate. | **M2** | ✅ Done — `changes/2026-08-18-fail-on-critical-gate`, plus a repeatable `--fail-on-critical-on ACTION` invocation-time override beyond the original recommendation (exit code `3`, opt-in per open question 2) |
 | 1.2 | **Ship presets + `tf-peek init --provider gcp`** — curated `presets/{gcp,aws,azure,kubernetes}.toml`, packaged and loadable by name. Makes the differentiator visible immediately and creates the contribution on-ramp. | **M6** | ⬜ Not started |
-| 1.3 | **Surface `replace_paths`** — "Replaced because `settings[0].tier` changed" in the 🚨 section. Answers the reviewer's actual question. | **M1** | ⬜ Not started |
+| 1.3 | **Surface `replace_paths`** — "Replaced because `settings[0].tier` changed" in the 🚨 section. Answers the reviewer's actual question. | **M1** | ✅ Done — `changes/2026-08-20-surface-plan-causation`, plus neutral `action_reason` phrasing, the replacement-mechanism callout and causation surviving `detail = "summary"` beyond the original recommendation |
 | 1.4 | Config discovery: walk up to repo root, support `TF_PEEK_CONFIG`, support `[tool.tf-peek]` in `pyproject.toml` | **M7** | ⬜ Not started |
 | 1.5 | Nested path-level diffing — flatten to `settings.tier` rows rather than blob-vs-blob | **D4b** | ⬜ Not started |
 | 1.6 | Group by module using the already-parsed `module_address` | **M1** | ⬜ Not started |
