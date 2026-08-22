@@ -33,6 +33,8 @@ _NO_SENSITIVITY: tuple[Marker, Marker] = (False, False)
         pytest.param(["a", 1.5], "a[1.5]", id="float-step-falls-back-to-json"),
         pytest.param([True], "[true]", id="bool-step-is-not-an-index"),
         pytest.param(["a", None], "a[null]", id="null-step-falls-back-to-json"),
+        pytest.param(["labels", "clé"], 'labels["clé"]', id="non-ascii-key-is-not-ascii-escaped"),
+        pytest.param(["a", "line\nbreak"], 'a["line\\nbreak"]', id="newline-step-is-json-escaped"),
     ],
 )
 def test_render_forcing_path(path: list[Any], expected: str) -> None:
@@ -157,9 +159,10 @@ def test_escapers_split_github_autolinks_and_references_without_changing_visible
     assert escape_in_html(source) == expected
 
 
-def test_escape_in_markdown_collapses_line_breaks() -> None:
-    """A raw line break cannot split the paragraph out of its detail block."""
-    assert "\n" not in escape_in_markdown("a\nb")
+@pytest.mark.parametrize("raw", ["a\nb", "a\rb", "a\r\nb"], ids=["lf", "cr", "crlf"])
+def test_escape_in_markdown_collapses_line_breaks(raw: str) -> None:
+    """A raw line break collapses to a visible escape, not a physical break or a silent join."""
+    assert escape_in_markdown(raw) == "a&#92;nb"
 
 
 def test_escape_in_html_escapes_the_full_markup_set() -> None:
@@ -167,9 +170,15 @@ def test_escape_in_html_escapes_the_full_markup_set() -> None:
     assert escape_in_html('<b>&"</b>') == "&lt;b&gt;&amp;&quot;&lt;/b&gt;"
 
 
-def test_escape_in_html_collapses_line_breaks() -> None:
-    """A raw line break cannot break the collapsed `<summary>` line across physical lines."""
-    assert "\n" not in escape_in_html("a\nb")
+def test_escape_in_html_preserves_the_apostrophe_entity() -> None:
+    """`html.escape` emits `&#x27;` for an apostrophe, and the GitHub splitter must not break it."""
+    assert escape_in_html("'") == "&#x27;"
+
+
+@pytest.mark.parametrize("raw", ["a\nb", "a\rb", "a\r\nb"], ids=["lf", "cr", "crlf"])
+def test_escape_in_html_collapses_line_breaks(raw: str) -> None:
+    """A raw line break collapses to a visible escape, not a physical break or a silent join."""
+    assert escape_in_html(raw) == "a\\nb"
 
 
 # ---------------------------------------------------------------------------

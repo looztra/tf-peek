@@ -486,3 +486,239 @@ Markdown and HTML contexts that can receive raw reason text.
 All accepted findings are remediated. The core decisions that survived both reviews remain unchanged:
 one fail-closed sensitivity policy, a total replacement-mechanism tri-state, rendered-form sorting,
 no tier or exit-code changes, and no new configuration surface.
+
+---
+
+# Third Adversarial Review — `2026-08-20-surface-plan-causation`
+
+Fresh adversarial review of the branch `feat/surface-plan-causation` performed as a PR-style review
+of `main...feat/surface-plan-causation` by eight independent reviewers across disjoint file slices
+(docs, OpenSpec plan, OpenSpec spec/tasks, causation module, models/diff, report/template, unit
+tests, integration tests/goldens). This section is append-only: the first and second review reports
+above remain unchanged, so their findings, decisions and then-current verification stay auditable.
+
+- **Reviewed at**: branch `feat/surface-plan-causation` (31 files, +2677/−41)
+- **Reviewers**: eight slice reviewers plus this lead judgment
+- **Initial verdict**: **REQUEST CHANGES** — no critical/major runtime, escaping or injection defect;
+  the blockers are OpenSpec artifact coherence, one vacuous test assertion, and one broken doc sentence
+- **Current status**: all accepted findings remediated; see [Third-review remediation](#third-review-remediation)
+
+The runtime code (`causation.py`, `report.py`, `models.py`, `diff.py`, the template) is correct and
+sound. Escaping was verified empirically — hostile payloads rendered through both the raw-HTML
+`<summary>` context and the Markdown body context — and no injection, context-mismatch or correctness
+defect was found. Every finding below is an artifact-accuracy or test-strength issue, not a
+behavioural one.
+
+## Third-review findings
+
+|ID|Severity|Finding|Status|
+|---|---|---|---|
+|AR3-F1|medium|`design.md` escaping-context decision contradicted the shipped escape sets and omitted autolink splitting|fixed|
+|AR3-F2|medium|`design.md` precedence decision quoted a deleted phrase and omitted the mechanism and replacement-reason gates|fixed|
+|AR3-F3|medium|`proposal.md` Impact omitted `docs/architecture/01-architecture-overview.md`, which the branch edits|fixed|
+|AR3-F4|minor|`design.md:51` still wrote the stale private name `_is_sensitive()`|fixed|
+|AR3-F5|medium|`docs/explanation/resource-tiers.md` shipped a sentence severed across a paragraph break|fixed|
+|AR3-F6|minor|`docs/studies` §1 progress rollup listed 1.1 as the only shipped P1 item after 1.3 shipped|fixed|
+|AR3-F7|medium|`tests/test_report_rendering.py:123` asserted a static table header that cannot fail|fixed|
+|AR3-F8|medium|newline-collapse tests asserted only the absence of `\n`, leaving CR, CRLF and silent-join unguarded|fixed|
+|AR3-F9|minor|spec notation requirement over-general ("any other step" vs "any other string step")|fixed|
+|AR3-F10|minor|spec hostile-path scenario THEN described the deleted, vacuous table assertion|fixed|
+|AR3-F11|minor|`tasks.md` 1.4 claimed `test_models.py` assertions that do not exist|fixed|
+|AR3-F12|minor|reason-only collapsed summary line had no integration pin|fixed|
+|AR3-F13|minor|integration hostile-reason loop asserted `<em>`/`<del>` that python-markdown can never emit|fixed|
+|AR3-F14|minor|sensitive-value assertions checked `block` not `report`, missing the new `<summary>` surface|fixed|
+|AR3-F15|nit|mechanism statement emitted with no context filter|fixed|
+|AR3-F16|minor|`_render_step` `ensure_ascii=False` and control-char JSON-encoding had no unit pin|fixed|
+|AR3-F17|minor|apostrophe entity guard (`(?<!&)`) had no pin|fixed|
+|AR3-R1|minor|GitHub emoji shortcodes are not neutralized like autolinks/mentions|deferred|
+|AR3-R2|minor|`replace_paths` validator still rejects a malformed non-list element|no action|
+|AR3-R3|nit|`_run_generate` duplicated across integration test modules|deferred|
+
+## Third-review remediation
+
+### AR3-F1 — Escaping-context decision contradicted the shipped escape sets
+
+`design.md:90-94` stated the hostile-character union as "`|` and backtick and CR/LF for the table
+context, plus `<`, `&` and `"` for the HTML one", and never mentioned the autolink/mention/issue
+splitting. The shipped code contradicts all three: no causation fragment enters a table cell, `|` is
+deliberately left unescaped, `escape_in_code_span` no longer collapses CR/LF (AR2-F7), and the
+Markdown filter entity-encodes a wider set (`\`, `*`, `_`, `[`, `]`, `!`, `~`, `$`) plus
+`_break_github_links` splits URL, mention and issue prefixes.
+
+**Fix.** Rewrote the decision to state the three context filters and their actual delimiter sets,
+including the GitHub autolink/reference splitting and the fact that no fragment enters a table cell.
+
+### AR3-F2 — Precedence decision quoted a deleted phrase and omitted the gates
+
+`design.md:59-67` quoted "replaced because the provider cannot update in place; forces replacement:
+`settings[0].tier`" — a phrase F11 deleted — and stated the precedence rule without the two gates the
+shipped resolver adds: forcing paths render only when a replacement mechanism is present (F3), and
+replacement-only reason codes are interpreted only on a replacement (AR2-F2).
+
+**Fix.** Rewrote the decision to state that `replace_because_cannot_update` has no phrasing entry
+(a pathless occurrence degrades to the passthrough sentence), and to record both gates explicitly.
+
+### AR3-F3 — `proposal.md` Impact omitted the architecture doc
+
+`proposal.md:115` listed only `docs/explanation/resource-tiers.md` and the study status row as
+documentation impact, but the branch also rewrites `docs/architecture/01-architecture-overview.md`.
+
+**Fix.** Added the architecture overview to the Docs impact line with its content.
+
+### AR3-F4 — Stale private name in `design.md`
+
+`design.md:51` contrasted the open `str` `action_reason` against "`_is_sensitive()`", while the
+branch (and `design.md:160` of the same file) uses the public `is_sensitive`.
+
+**Fix.** Corrected the reference to `is_sensitive()`.
+
+### AR3-F5 — Severed sentence in `resource-tiers.md`
+
+`docs/explanation/resource-tiers.md` shipped "`summary` suppresses attribute" / blank line / "*values*
+only:" — a sentence broken across a paragraph boundary.
+
+**Fix.** Merged into "`summary` suppresses attribute *values* only:".
+
+### AR3-F6 — Study rollup stale
+
+`docs/studies/…` §1 "Progress since publication" listed P1 1.1 as the only shipped P1 item after the
+patch marked 1.3 done.
+
+**Fix.** The rollup now names 1.3 alongside 1.1.
+
+### AR3-F7 — Vacuous silent-replacement assertion
+
+`tests/test_report_rendering.py:123` asserted `"| ⚠️ Replace |" in report`, which matches the static
+"Changes by Resource Type" table header every report emits. Verified that a create-only plan still
+contains that substring, so the assertion could never fail.
+
+**Fix.** Replaced with the tiered-summary row tail `"| ⚠️ Replace |  |  | 🔇 1 | **1** |"`, which
+only renders when the silent replacement is actually classified as a replace.
+
+### AR3-F8 — Newline-collapse tests under-pinned
+
+`test_escape_in_markdown_collapses_line_breaks` and `test_escape_in_html_collapses_line_breaks`
+asserted only `"\n" not in …`, which a bug that *deletes* the break (`replace("\n", "")`) would
+still pass, and neither CR nor CRLF was exercised.
+
+**Fix.** Both are parametrized over LF/CR/CRLF and assert the exact collapsed output
+(`a&#92;nb` for Markdown, `a\nb` literal for HTML), pinning the collapse rather than its absence.
+
+### AR3-F9 — Over-general notation requirement
+
+The spec's notation requirement said "any other step SHALL render as a bracketed quoted subscript",
+but `_render_step` renders a bool as `[true]`, a null as `[null]` and other values as unquoted JSON
+subscripts — behaviour the later unrecognized-step requirement demands. Task 2.2 already scoped this
+correctly to string steps.
+
+**Fix.** Scoped the clause to "any other string step".
+
+### AR3-F10 — Hostile-path scenario described the deleted assertion
+
+The scenario's THEN clause required "every table row on one physical line and a consistent number of
+cell delimiters", but no causation fragment enters a table cell and task 9.5 deleted that assertion.
+
+**Fix.** Reworded to the invariant that is both meaningful and tested: the callout stays on one
+physical line and the pipe stays inert paragraph text.
+
+### AR3-F11 — `tasks.md` 1.4 overstated `test_models.py`
+
+Task 1.4 claimed `test_models.py` verifies both fields "preserve supplied values" and that
+`simple_action` returns `replace` for both orders. The file exercises `simple_action` only for
+`["create", "delete"]`, never round-trips a supplied `action_reason`, and 8.11 replaced the
+`replace_paths` round-trip test.
+
+**Fix.** Reworded 1.4 to name the assertions that exist (defaults, null tolerance, unexpected step,
+mechanism order) and to cite the goldens for the order-insensitive `replace` classification.
+
+### AR3-F12 — Reason-only summary line unpinned
+
+Nothing asserted that a pathless reason reaches the always-visible `<summary>` line; the only
+summary-line reason evidence in the goldens also carried a forcing path.
+
+**Fix.** Added `test_reason_only_replacement_explains_on_the_summary_line`, asserting the tainted
+explanation appears on `null_resource.tainted`'s `<summary>` line.
+
+### AR3-F13 — Tautological markup assertions
+
+The hostile-reason loop asserted `<em>` and `<del>` are absent from `markdown(reason_line)`, but
+python-markdown with default extensions can never emit either for that payload — the assertions pass
+whether or not the escaper touches `~` or `*`. The `~~` and `*` protections are in fact pinned, but
+only by the literal substring assertions, not this oracle.
+
+**Fix.** Reduced the loop to the two elements the oracle can emit (`<a `, `<img`); the literal
+substring assertions remain the honest pin for strikethrough and emphasis.
+
+### AR3-F14 — Sensitive values checked against the wrong slice
+
+`test_sensitive_forcing_path_is_shown_while_its_value_stays_masked` asserted `old-secret`/
+`new-secret` against `block`, which excludes the resource's own `<summary>` line — the new
+dynamic-text surface this patch introduces. Its sibling test correctly checks the whole `report`.
+
+**Fix.** The two assertions now check `report`, matching the sibling test.
+
+### AR3-F15 — Mechanism emitted without a context filter
+
+`causation_callout` emitted `{{ res.causation.mechanism }}` raw, the one causation field without a
+context filter. No-op today (the strings come from a closed literal table) but it broke the
+"template applies its own context's escape" invariant.
+
+**Fix.** Added `| in_markdown`, which is a no-op on the current values (goldens unchanged).
+
+### AR3-F16 — `ensure_ascii=False` and control-char JSON-encoding unpinned
+
+No unit case pinned `_render_step`'s `ensure_ascii=False` argument or the invariant that a raw
+newline step renders as an escaped `\n` inside the quoted subscript.
+
+**Fix.** Added `["labels", "clé"]` → `labels["clé"]` and `["a", "line\nbreak"]` →
+`a["line\nbreak"]` parametrize cases.
+
+### AR3-F17 — Apostrophe entity guard unpinned
+
+The `(?<!&)` lookbehind in `_GITHUB_REFERENCE_START` protects `html.escape`'s `&#x27;` output from
+being split, but no test pinned it.
+
+**Fix.** Added `test_escape_in_html_preserves_the_apostrophe_entity` asserting
+`escape_in_html("'") == "&#x27;"`.
+
+## Third-review rejected and deferred findings
+
+### AR3-R1 — GitHub emoji shortcodes not neutralized
+
+`_break_github_links` neutralizes autolinks, mentions and issue references but not GitHub's emoji
+filter, so an unrecognized reason such as `delete_because_:white_check_mark:_ok` could render as an
+emoji glyph in both contexts. Deferred: the GitHub-side substitution is `[INFERENCE]` from
+html-pipeline's `EmojiFilter`, and entity-encoding `:` would not help (the filter runs after entity
+decoding). The fix — splitting before `:` followed by an identifier — has false-positive risk for
+legitimate content (URLs with ports, times), and this reason code is unreachable from Terraform
+itself. Recorded as a residual risk, not acted on.
+
+### AR3-R2 — Malformed `replace_paths` element still aborts the parse
+
+The `mode="before"` validator maps only a top-level `null` to `[]`; a spec-violating element such as
+`["ami"]` or `[null]` still raises pydantic and aborts the report. No action: the second review
+already rejected this exact expansion — "Silently accept arbitrary outer `replace_paths` shapes —
+rejected as scope expansion. The spec requires null and unexpected *step* tolerance, not acceptance
+of a structurally invalid field." This pass confirms the rejection is still the correct call.
+
+### AR3-R3 — `_run_generate` duplication
+
+`tests/integration/test_causation.py` copies the CLI invocation helper from
+`tests/integration/test_defects.py` instead of sharing it via `conftest.py`. Deferred as a style
+nit; two copies can drift, but it is not a correctness defect in this change.
+
+## Third-review verification
+
+|Check|Result|
+|---|---|
+|Targeted causation/model/report tests|pass — **98 passed**|
+|`uv run poe style`|pass — `ruff check --select I --fix` and `ruff format` clean|
+|`uv run poe lint:all`|pass — `ruff format --check`, `ruff check`, `pylint` 10.00/10, `ty check`|
+|`uv run poe test`|pass — **216 passed**, 2 snapshots (was 208 before this pass)|
+
+## Third-review lead judgment
+
+The four request-changes items are remediated: the OpenSpec artifacts now match the shipped code, the
+silent-replacement assertion can fail, the newline-collapse tests pin exact output across LF/CR/CRLF,
+and the severed doc sentence is repaired. No behavioural, escaping or injection defect was found in
+the runtime code, and no prior finding's record was altered.

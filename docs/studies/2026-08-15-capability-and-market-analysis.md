@@ -30,9 +30,10 @@ The recommendation is therefore sequenced, not balanced:
 
 **Progress since publication** (see §7 for full status per item): P0 is now fully shipped — all
 nine items, including all five verified defects (D1–D6). P1 item 1.1 (`--fail-on-critical`) has
-also shipped, and so has P2 items 2.3 (stdin support), 2.7 (community health files) and 2.8 (README
-rewrite). Effort estimates and the "not yet safe for CI" framing below describe the repository
-state at the time of writing (commit `508e5f8`), not the current state.
+also shipped, as has 1.3 (`replace_paths` causation rendering), and so has P2 items 2.3 (stdin
+support), 2.7 (community health files) and 2.8 (README rewrite). Effort estimates and the "not yet
+safe for CI" framing below describe the repository state at the time of writing (commit `508e5f8`),
+not the current state.
 
 Estimated effort to a credible 2.0: **P0 ≈ 2–3 focused days, P1 ≈ 4–5 days, P2 ≈ 4–5 days.** The
 codebase is 336 lines of source with 35 passing tests, so the surface area is small and the work is

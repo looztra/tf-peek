@@ -63,6 +63,15 @@ def test_known_reason_renders_as_neutral_prose(tmp_path: Path, address: str, exp
     assert expected_fragment in block
 
 
+def test_reason_only_replacement_explains_on_the_summary_line(tmp_path: Path) -> None:
+    """A pathless reason reaches the always-visible summary line, not only the body."""
+    report = _run_generate("causation-reasons.json", tmp_path)
+    summary_line = next(
+        line for line in report.splitlines() if "null_resource.tainted" in line and "<summary>" in line
+    )
+    assert "the resource is tainted" in summary_line
+
+
 def test_unknown_deletion_reason_is_passed_through_and_marked(tmp_path: Path) -> None:
     """An unrecognized reason code renders successfully, verbatim, marked as passed through."""
     report = _run_generate("causation-reasons.json", tmp_path)
@@ -157,7 +166,7 @@ def test_hostile_reason_cannot_inject_markup_or_close_the_block(tmp_path: Path) 
 
     rendered_reason = markdown(reason_line)
     assert rendered_reason.count("<strong>") == 1  # The trusted **Reason:** label only.
-    for injected_element in ("<a ", "<img", "<em>", "<del>"):
+    for injected_element in ("<a ", "<img"):
         assert injected_element not in rendered_reason
     _assert_html_elements_balanced(report)
 
@@ -221,6 +230,6 @@ def test_sensitive_forcing_path_is_shown_while_its_value_stays_masked(tmp_path: 
     report = _run_generate("causation-sensitive-path.json", tmp_path)
     block = _resource_block(report, "aws_db_instance.creds")
     assert "**Forces replacement:** `password`" in block
-    assert "old-secret" not in block
-    assert "new-secret" not in block
+    assert "old-secret" not in report
+    assert "new-secret" not in report
     assert re.search(r"`password`.*\(sensitive value\)", block)

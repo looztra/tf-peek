@@ -120,7 +120,7 @@ tier = "silent"
 
     assert "null_resource.rotated" not in report
     assert "triggers.version" not in report
-    assert "| ⚠️ Replace |" in report
+    assert "| ⚠️ Replace |  |  | 🔇 1 | **1** |" in report
     assert "🔇 1" in report
 
 
