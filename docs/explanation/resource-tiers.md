@@ -50,11 +50,10 @@ example, IAM bindings, firewall rules, or Kubernetes deployments.
 
 **The `detail` option**: For resource types that produce verbose diffs with many attributes (such as
 IAM binding types), you can set `detail = "summary"` to hide the attribute values while keeping the
-resource and its change explanation visible. `summary` suppresses attribute
-
-*values* only: if the resource is being replaced or deleted, its stated forcing paths, its stated
-change reason and its replacement mechanism (for a replace) still render, because they are metadata
-about *why* the change happened, not the values being hidden.
+resource and its change explanation visible. `summary` suppresses attribute *values* only: if the
+resource is being replaced or deleted, its stated forcing paths, its stated change reason and its
+replacement mechanism (for a replace) still render, because they are metadata about *why* the change
+happened, not the values being hidden.
 
 ### Critical
 

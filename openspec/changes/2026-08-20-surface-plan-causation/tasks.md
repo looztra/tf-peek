@@ -8,9 +8,11 @@
 - [x] 1.3 Add an order-sensitive replacement-mechanism property to `ResourceChange` reading
       `change.actions` positionally, leaving the existing membership-based `is_replacement` and
       `simple_action` untouched; verify both replacement orders in task 1.4
-- [x] 1.4 Extend `tests/test_models.py`: both new fields default correctly when absent and preserve
-      supplied values; the mechanism property distinguishes `["delete", "create"]` from
-      `["create", "delete"]`; `simple_action` still returns `replace` for both orders
+- [x] 1.4 Extend `tests/test_models.py`: both new fields default correctly when absent, an explicit
+      null `replace_paths` parses to `[]`, an unexpected step type is accepted, and the mechanism
+      property distinguishes `["delete", "create"]` from `["create", "delete"]`; `simple_action`'s
+      order-insensitive `replace` classification is pinned end-to-end by the goldens, which count
+      both mechanism orders as Replace
 
 ## 2. Causation formatting
 

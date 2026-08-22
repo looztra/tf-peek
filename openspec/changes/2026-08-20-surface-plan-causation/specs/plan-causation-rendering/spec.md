@@ -38,7 +38,7 @@ When a replaced resource's plan change states one or more replacement-forcing at
 
 ### Requirement: Forcing paths render in Terraform attribute-path notation
 
-A rendered forcing path SHALL use the attribute-path notation a Terraform user reads in human-readable plan output: a numeric step SHALL render as a bracketed index, a step whose name is a valid identifier SHALL render as a dotted name, and any other step SHALL render as a bracketed quoted subscript. The first step SHALL NOT be preceded by a separator.
+A rendered forcing path SHALL use the attribute-path notation a Terraform user reads in human-readable plan output: a numeric step SHALL render as a bracketed index, a step whose name is a valid identifier SHALL render as a dotted name, and any other string step SHALL render as a bracketed quoted subscript. The first step SHALL NOT be preceded by a separator.
 
 #### Scenario: Path mixes attribute names and a list index
 
@@ -219,7 +219,7 @@ An attribute path can contain a map key holding arbitrary text, and a stated rea
 #### Scenario: Path contains a pipe and a line break
 
 - **WHEN** a forcing path contains a map key holding both a pipe character and a line feed
-- **THEN** the detail block containing it remains structurally intact, with every table row on one physical line and a consistent number of cell delimiters
+- **THEN** the causation callout that names it stays on one physical line, and the pipe renders as inert paragraph text rather than a table delimiter
 - **THEN** the collapsed summary line remains a single line
 
 #### Scenario: Path contains markup and code-span characters

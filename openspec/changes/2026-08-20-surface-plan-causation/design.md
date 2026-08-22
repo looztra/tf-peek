@@ -48,7 +48,7 @@ opposite of the sensitivity decision on purpose.** The format spec is explicit: 
 display hints only and the set of possible hints may change over time. Users of this must be prepared
 to encounter unrecognized reasons and treat them as unspecified reasons." A pydantic `Literal` tied
 to any current code set would reject the whole plan on a code introduced by a future Terraform
-release — turning a lost display hint into a total parse failure. Contrast `_is_sensitive()`
+release — turning a lost display hint into a total parse failure. Contrast `is_sensitive()`
 (`src/tf_peek/diff.py:67`), which deliberately fails **closed** on unexpected marker shapes. Both are
 correct because the failure costs differ by orders of magnitude: mishandling a sensitivity marker
 publishes a secret into a durable, notification-emailed PR comment (study §4.1 D1); mishandling a
@@ -57,14 +57,19 @@ codes, while unknown codes remain visible as uninterpreted Terraform output.
 
 **Only `replace_because_cannot_update` is suppressed when paths exist.** A provider-forced replace
 typically carries both `replace_paths` and `action_reason = "replace_because_cannot_update"`.
-Rendering both produces "replaced because the provider cannot update in place; forces replacement:
-`settings[0].tier`" — the second clause already implies the first, and the study's entire thesis
-(§5.3) is that alert fatigue is the enemy. Tainted, requested and trigger-driven replacements
-typically have empty paths and therefore need the reason. Any other recognized or unrecognized reason
-that arrives alongside paths remains visible because the paths do not prove it redundant. So:
-paths plus `replace_because_cannot_update` → paths only; paths plus any other reason → both; reason
-without paths → reason; neither → render nothing. Rejected alternative: paths always win. Rejected
-because it would silently discard the forward-compatible reason that the open-string model preserves.
+Rendering both would state the mechanism the paths already demonstrate, and the study's entire thesis
+(§5.3) is that alert fatigue is the enemy. That code is therefore deliberately absent from the
+phrasing table (a pathless occurrence from some future producer degrades to the passthrough sentence,
+which is the documented behaviour for a code we cannot phrase). Forcing paths are rendered only when
+a replacement mechanism is present, and replacement-only reason codes (`replace_because_tainted`,
+`replace_by_request`, `replace_by_triggers`) are interpreted only on a replacement — on any other
+action they fall back to the passthrough form so the report never asserts a replacement it did not
+classify. Tainted, requested and trigger-driven replacements typically have empty paths and therefore
+need the reason. Any other recognized or unrecognized reason that arrives alongside paths remains
+visible because the paths do not prove it redundant. So: paths plus `replace_because_cannot_update`
+→ paths only; paths plus any other reason → both; reason without paths → reason; neither → render
+nothing. Rejected alternative: paths always win. Rejected because it would silently discard the
+forward-compatible reason that the open-string model preserves.
 
 **HCL-style path rendering (`settings[0].tier`), accepting one unresolvable ambiguity.** Considered
 `settings.0.tier` (unambiguous, jq-flavoured) and `settings → 0 → tier` (unambiguous, escaping-
@@ -88,10 +93,17 @@ about JSON quoting is harder to reason about than two functions, and the escapin
 next decision).
 
 **Two escaping contexts, and the HTML one is new to this codebase.** The body callout lands in
-Markdown; the short form lands inside `<summary>`, which is HTML. The union of hostile characters is
-therefore larger than anything `safe-value-rendering` currently covers: `|` and backtick and
-CR/LF for the table context, plus `<`, `&` and `"` for the HTML one. Map keys are the vector —
-`kubernetes.io/role` is benign, but nothing prevents a key containing a pipe, a newline, or `<b>`.
+Markdown; the short form lands inside `<summary>`, which is HTML. Neither causation fragment ever
+enters a table cell, so the table-context pipe escape is not inherited: a pipe is ordinary paragraph
+content in both contexts and stays literal. The three context filters neutralise exactly their own
+delimiters — `in_code_span` substitutes only the backtick (CR/LF cannot reach it, since every
+non-identifier step is already JSON-encoded); `in_markdown` entity-encodes HTML and inline-Markdown
+delimiters (`<`, `&`, `\`, backtick, `*`, `_`, `[`, `]`, `!`, `~`, `$`); `in_html` delegates to
+`html.escape`. Because GitHub autolinks URLs even after entity decoding — including inside raw-HTML
+`<summary>` content — both dynamic-text filters split URL, mention and issue-reference prefixes with
+an invisible trusted HTML comment, preserving the displayed and copied text while denying the parser
+an attacker-controlled link. Map keys are the vector — `kubernetes.io/role` is benign, but nothing
+prevents a key containing a backtick, a newline, or `<b>`.
 Two consequences:
 
 1. The short form uses an explicit `<code>` element rather than Markdown backticks. The template has

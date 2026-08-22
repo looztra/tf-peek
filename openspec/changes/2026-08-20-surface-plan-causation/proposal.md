@@ -112,7 +112,9 @@ Deliberately **not** modified:
   duplicate/overlapping paths; and a `detail = "summary"` resource being replaced.
 - **Tests**: unit coverage for the path formatter, neutral reason phrasing and the narrow precedence
   rule; integration coverage for both rendering contexts and unknown-code passthrough.
-- **Docs**: `docs/explanation/resource-tiers.md` and the study's §7 P1 1.3 status row.
+- **Docs**: `docs/explanation/resource-tiers.md`, `docs/architecture/01-architecture-overview.md`
+  (the module tree gains `causation.py`; the pipeline distinguishes silent, summary and full detail)
+  and the study's §7 P1 1.3 status row.
 - **Sensitivity**: `is_sensitive`/`marker_for_key` (`src/tf_peek/diff.py`) become public so the
   causation renderer applies the *same* fail-closed masking policy as the diff table instead of a
   second one; a forcing path is cut to its attribute name when that attribute's value is masked.
