@@ -43,14 +43,17 @@ total visible without adding noise.
 ### Normal
 
 Normal is the default tier. Resources in this tier appear in the main details section of the report
-with their full attribute diff (or a title-only summary if `detail = "summary"` is configured).
+with their full attribute diff, or without attribute values when `detail = "summary"` is configured.
 
 **When to use normal**: Any resource that warrants review but is not considered dangerous — for
 example, IAM bindings, firewall rules, or Kubernetes deployments.
 
 **The `detail` option**: For resource types that produce verbose diffs with many attributes (such as
-IAM binding types), you can set `detail = "summary"` to show only the resource address without the
-diff. This reduces visual noise while keeping the resource visible.
+IAM binding types), you can set `detail = "summary"` to hide the attribute values while keeping the
+resource and its change explanation visible. `summary` suppresses attribute *values* only: if the
+resource is being replaced or deleted, its stated forcing paths, its stated change reason and its
+replacement mechanism (for a replace) still render, because they are metadata about *why* the change
+happened, not the values being hidden.
 
 ### Critical
 

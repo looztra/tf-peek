@@ -73,6 +73,30 @@
         "before_sensitive": false,
         "after_sensitive": false
       }
+    },
+    {
+      "address": "google_compute_instance.web",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "google_compute_instance",
+      "name": "web",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": ["create", "delete"],
+        "before": {
+          "machine_type": "e2-small"
+        },
+        "after": {
+          "machine_type": "e2-medium"
+        },
+        "after_unknown": {
+          "machine_type": false
+        },
+        "before_sensitive": false,
+        "after_sensitive": false,
+        "replace_paths": [["machine_type"]]
+      },
+      "action_reason": "replace_by_triggers"
     }
   ],
   "output_changes": {

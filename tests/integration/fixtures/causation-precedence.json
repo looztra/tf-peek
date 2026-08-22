@@ -1,0 +1,58 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.5",
+  "resource_changes": [
+    {
+      "address": "google_sql_database_instance.cannot_update",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "google_sql_database_instance",
+      "name": "cannot_update",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": ["delete", "create"],
+        "before": { "engine_version": "POSTGRES_13" },
+        "after": { "engine_version": "POSTGRES_15" },
+        "after_unknown": null,
+        "before_sensitive": false,
+        "after_sensitive": false,
+        "replace_paths": [["engine_version"]]
+      },
+      "action_reason": "replace_because_cannot_update"
+    },
+    {
+      "address": "google_sql_database_instance.non_redundant",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "google_sql_database_instance",
+      "name": "non_redundant",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": ["delete", "create"],
+        "before": { "engine_version": "POSTGRES_13" },
+        "after": { "engine_version": "POSTGRES_15" },
+        "after_unknown": null,
+        "before_sensitive": false,
+        "after_sensitive": false,
+        "replace_paths": [["engine_version"]]
+      },
+      "action_reason": "replace_because_a_future_terraform_release"
+    },
+    {
+      "address": "aws_instance.no_cause",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "no_cause",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["delete", "create"],
+        "before": { "ami": "ami-old" },
+        "after": { "ami": "ami-new" },
+        "after_unknown": null,
+        "before_sensitive": false,
+        "after_sensitive": false
+      }
+    }
+  ]
+}

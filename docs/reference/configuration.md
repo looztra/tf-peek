@@ -89,13 +89,17 @@ Controls how a resource appears in the report.
 
 Applies only to resources with `tier = "normal"` (the default).
 
-| Value       | Behaviour                                                          |
-| :---------- | :----------------------------------------------------------------- |
-| `"full"`    | Full attribute diff is shown in a collapsible `<details>` block.   |
-| `"summary"` | Only the resource address is shown; the attribute diff is omitted. |
+| Value       | Behaviour                                                                          |
+| :---------- | :--------------------------------------------------------------------------------- |
+| `"full"`    | Full attribute diff is shown in a collapsible `<details>` block.                    |
+| `"summary"` | Attribute values are omitted; the resource address and its change explanation stay. |
 
 `"summary"` is useful for resource types that produce many changes with verbose diffs (such as IAM
-binding types) where the attribute detail adds noise.
+binding types) where the attribute detail adds noise. It hides attribute *values*, not the plan's
+own explanation of the change: a summarized resource being replaced still shows its forcing paths,
+its stated reason and its replacement mechanism, because those are metadata about *why* the change
+happens rather than the values being suppressed. See
+[Resource tiers](../explanation/resource-tiers.md).
 
 ---
 
@@ -171,7 +175,7 @@ critical_on = ["delete", "replace", "update"]
 match_pattern = 'module\.k8s_infra_git_sync\.null_resource\.'
 tier = "silent"
 
-# Summarise verbose IAM binding types (no diff, title only)
+# Summarise verbose IAM binding types (hide values, keep the change explanation)
 [[resources]]
 match_type = "google_project_iam_binding"
 detail = "summary"

@@ -21,10 +21,12 @@ def rc_entry(  # noqa: PLR0913, PLR0917
     before: dict[str, Any] | None = None,
     after: dict[str, Any] | None = None,
     module: str = "root",
+    replace_paths: list[list[Any]] | None = None,
+    action_reason: str | None = None,
 ) -> dict[str, Any]:
     """Build a minimal resource_change entry."""
     address_prefix = f"module.{module}." if module != "root" else ""
-    return {
+    entry: dict[str, Any] = {
         "address": f"{address_prefix}{rtype}.{name}",
         "module_address": module,
         "type": rtype,
@@ -34,8 +36,12 @@ def rc_entry(  # noqa: PLR0913, PLR0917
             "before": before,
             "after": after,
             "after_unknown": None,
+            "replace_paths": replace_paths or [],
         },
     }
+    if action_reason is not None:
+        entry["action_reason"] = action_reason
+    return entry
 
 
 def run_generate(plan: dict[str, Any], config_content: str, tmp_path: Path) -> str:

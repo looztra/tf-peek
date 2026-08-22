@@ -97,6 +97,33 @@ tier = "silent"
     assert "google_storage_bucket" in details
 
 
+def test_silent_replacement_does_not_create_a_causation_detail_block(tmp_path: Path) -> None:
+    """Causation metadata does not override the silent tier's no-detail contract."""
+    plan = make_plan(
+        [
+            rc_entry(
+                "null_resource",
+                "rotated",
+                ["delete", "create"],
+                before={"triggers": {"version": "old"}},
+                after={"triggers": {"version": "new"}},
+                replace_paths=[["triggers", "version"]],
+            )
+        ]
+    )
+    config = """
+[[resources]]
+match_type = "null_resource"
+tier = "silent"
+"""
+    report = run_generate(plan, config, tmp_path)
+
+    assert "null_resource.rotated" not in report
+    assert "triggers.version" not in report
+    assert "| ⚠️ Replace |  |  | 🔇 1 | **1** |" in report
+    assert "🔇 1" in report
+
+
 def test_silent_resources_disclosed_in_type_table(tmp_path: Path) -> None:
     """Silent resources appear in the 🔇 sub-section of the type table."""
     plan = make_plan(
@@ -259,6 +286,40 @@ detail = "summary"
     report = run_generate(plan, config, tmp_path)
 
     assert "google_project_iam_member.binding1" in report
-    assert "Details hidden by configuration" in report
+    assert "Attribute values hidden by configuration" in report
     # The actual attribute values should NOT be present in the diff table
     assert "roles/viewer" not in report
+
+
+# ---------------------------------------------------------------------------
+# Integration: causation survives detail = summary
+# ---------------------------------------------------------------------------
+
+
+def test_summarized_replace_keeps_forcing_path_and_mechanism(tmp_path: Path) -> None:
+    """A summarized replaced resource hides values but keeps its causation and mechanism."""
+    plan = make_plan(
+        [
+            rc_entry(
+                "google_project_iam_member",
+                "binding1",
+                ["delete", "create"],
+                before={"role": "roles/viewer"},
+                after={"role": "roles/editor"},
+                replace_paths=[["role"]],
+            ),
+        ]
+    )
+    config = """
+[[resources]]
+match_type = "google_project_iam_member"
+tier = "normal"
+detail = "summary"
+"""
+    report = run_generate(plan, config, tmp_path)
+
+    assert "Attribute values hidden by configuration" in report
+    assert "roles/viewer" not in report
+    assert "roles/editor" not in report
+    assert "**Forces replacement:** `role`" in report
+    assert "the existing object is destroyed before its replacement is created" in report
