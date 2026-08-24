@@ -1188,8 +1188,8 @@ dedicated 🚨 Critical Changes section at the top of your report.</p>
 <h2 id="mark-a-resource-type-as-critical">Mark a resource type as critical<a class="headerlink" href="#mark-a-resource-type-as-critical" title="Permanent link">&para;</a></h2>
 <p>Add an entry to your <code>peek_config.toml</code> with <code>tier = "critical"</code> and specify the resource type:</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">[[resources]]</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">match_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;google_storage_bucket&quot;</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">tier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;critical&quot;</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">match_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"google_storage_bucket"</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">tier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"critical"</span>
 </span></code></pre></div>
 <p>By default, only <code>delete</code> and <code>replace</code> operations on a critical resource are moved to the 🚨 section.
 Other actions (<code>create</code>, <code>update</code>) for the same type appear in the normal details section as usual.</p>
@@ -1198,18 +1198,18 @@ Other actions (<code>create</code>, <code>update</code>) for the same type appea
 <p>To flag additional action types — for example, flagging updates to a stateful resource — set
 <code>critical_on</code> explicitly:</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">[[resources]]</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">match_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;google_sql_database_instance&quot;</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">tier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;critical&quot;</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">critical_on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;delete&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;replace&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;update&quot;</span><span class="p">]</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">match_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"google_sql_database_instance"</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">tier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"critical"</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">critical_on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"delete"</span><span class="p">,</span><span class="w"> </span><span class="s2">"replace"</span><span class="p">,</span><span class="w"> </span><span class="s2">"update"</span><span class="p">]</span>
 </span></code></pre></div>
 <p><code>critical_on</code> accepts any combination of <code>"create"</code>, <code>"update"</code>, <code>"delete"</code>, and <code>"replace"</code>.</p>
 <hr />
 <h2 id="flag-resources-by-address-pattern">Flag resources by address pattern<a class="headerlink" href="#flag-resources-by-address-pattern" title="Permanent link">&para;</a></h2>
 <p>If you want to flag only specific instances of a type, use <code>match_pattern</code>:</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">[[resources]]</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">match_pattern</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;module\.prod_stack\..*\.google_container_cluster\.&#39;</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">tier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;critical&quot;</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">critical_on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;delete&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;replace&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;update&quot;</span><span class="p">]</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">match_pattern</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'module\.prod_stack\..*\.google_container_cluster\.'</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">tier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"critical"</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">critical_on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"delete"</span><span class="p">,</span><span class="w"> </span><span class="s2">"replace"</span><span class="p">,</span><span class="w"> </span><span class="s2">"update"</span><span class="p">]</span>
 </span></code></pre></div>
 <p><code>match_pattern</code> is a Python <code>re.search</code> expression matched against the full resource address.</p>
 <hr />
