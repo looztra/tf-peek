@@ -40,9 +40,13 @@
 #### `google_sql_database_instance`
 
 <details>
-<summary><b>🚨 google_sql_database_instance.prod</b></summary>
+<summary><b>🚨 google_sql_database_instance.prod</b> — forces replacement: <code>settings[0].tier</code></summary>
 
 *`google_sql_database_instance.prod`*
+
+**Forces replacement:** `settings[0].tier`
+
+**Mechanism:** the existing object is destroyed before its replacement is created
 
 | Property | Before | After |
 | :--- | :--- | :--- |
@@ -110,7 +114,7 @@
 
 *`google_project_iam_member.viewer`*
 
-> ℹ️ *Details hidden by configuration (filtered resource).*
+> ℹ️ *Attribute values hidden by configuration (filtered resource).*
 
 
 </details>
@@ -161,7 +165,7 @@
 
 *`google_project_iam_member.ci_deployer`*
 
-> ℹ️ *Details hidden by configuration (filtered resource).*
+> ℹ️ *Attribute values hidden by configuration (filtered resource).*
 
 
 </details>
@@ -173,7 +177,7 @@
 
 *`google_secret_manager_secret_iam_member.api_db_password`*
 
-> ℹ️ *Details hidden by configuration (filtered resource).*
+> ℹ️ *Attribute values hidden by configuration (filtered resource).*
 
 
 </details>

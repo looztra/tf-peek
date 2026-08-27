@@ -64,20 +64,20 @@ _MISSING = _Missing()
 _Resolved = ReportValue | _Missing
 
 
-def _is_sensitive(marker: Marker) -> bool:
+def is_sensitive(marker: Marker) -> bool:
     """Return True if any leaf of a Terraform sensitivity marker is truthy.
 
     Deliberately truthy rather than ``is True``: an unexpected marker shape must
     fail closed and mask the attribute rather than render a secret in plaintext.
     """
     if isinstance(marker, dict):
-        return any(_is_sensitive(v) for v in marker.values())
+        return any(is_sensitive(v) for v in marker.values())
     if isinstance(marker, list):
-        return any(_is_sensitive(v) for v in marker)
+        return any(is_sensitive(v) for v in marker)
     return bool(marker)
 
 
-def _marker_for_key(marker: Marker, key: str) -> Marker:
+def marker_for_key(marker: Marker, key: str) -> Marker:
     """Look up the sensitivity marker for a single top-level key.
 
     Terraform emits per-attribute markers as a dict, but the whole ``before_sensitive``/
@@ -239,9 +239,7 @@ def calculate_diff(
             val_after = None if isinstance(resolved, _Missing) else resolved
 
         if val_before != val_after:
-            if _is_sensitive(_marker_for_key(before_sensitive, k)) or _is_sensitive(
-                _marker_for_key(after_sensitive, k)
-            ):
+            if is_sensitive(marker_for_key(before_sensitive, k)) or is_sensitive(marker_for_key(after_sensitive, k)):
                 val_before = SENSITIVE_VALUE
                 val_after = SENSITIVE_VALUE
             diff[k] = {"before": val_before, "after": val_after}

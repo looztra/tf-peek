@@ -1,0 +1,24 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.5",
+  "resource_changes": [
+    {
+      "address": "google_storage_bucket.hostile_reason",
+      "module_address": "root",
+      "mode": "managed",
+      "type": "google_storage_bucket",
+      "name": "hostile_reason",
+      "provider_name": "registry.terraform.io/hashicorp/google",
+      "change": {
+        "actions": ["delete"],
+        "before": { "name": "legacy-bucket" },
+        "after": null,
+        "after_unknown": null,
+        "before_sensitive": false,
+        "after_sensitive": false,
+        "replace_paths": []
+      },
+      "action_reason": "delete_because_</details>\n\n# Injected Heading\n\n<img src=x onerror=alert(1)> & `code` **bold** [link](https://example.invalid) ![image](https://example.invalid/x.png) ~~strike~~ @octocat #123 $math$ www.example.invalid"
+    }
+  ]
+}
