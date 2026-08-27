@@ -1176,13 +1176,14 @@ output easier by producing a structured summary with per-resource diffs.</p>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>├── __main__.py       # Module entrypoint (python -m tf_peek)
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>├── cli.py            # CLI definition and top-level orchestration
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>├── actions.py        # Terraform action vocabulary shared by the report and the CLI
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>├── diff.py           # Semantic diffing of before/after values and their markers
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>├── formatting.py     # Rendering of semantic diff values into Markdown table cells
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>├── report.py         # Aggregation of a plan into report data, and template rendering
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>├── models.py         # Pydantic models for the Terraform plan JSON
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>├── config.py         # Configuration loading (TOML → PeekConfig)
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>└── templates/
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    └── report.md.j2  # Jinja2 template that renders the Markdown report
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>├── causation.py      # Rendering and safe presentation of Terraform's stated change causation
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>├── diff.py           # Semantic diffing of before/after values and their markers
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>├── formatting.py     # Rendering of semantic diff values into Markdown table cells
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>├── report.py         # Aggregation of a plan into report data, and template rendering
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>├── models.py         # Pydantic models for the Terraform plan JSON
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>├── config.py         # Configuration loading (TOML → PeekConfig)
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>└── templates/
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    └── report.md.j2  # Jinja2 template that renders the Markdown report
 </span></code></pre></div>
 <h2 id="processing-pipeline">Processing Pipeline<a class="headerlink" href="#processing-pipeline" title="Permanent link">&para;</a></h2>
 <p><code>tf-peek</code> follows a linear pipeline:</p>
@@ -1200,16 +1201,20 @@ output easier by producing a structured summary with per-resource diffs.</p>
    / <code>critical</code>) and, for <code>normal</code>, a <code>detail</code> level (<code>full</code> / <code>summary</code>). A <code>critical</code> resource
    whose action is in that rule's <code>critical_on</code> list is routed into the report's 🚨 Critical
    Changes section instead of the normal resource list.</li>
-<li><strong>Compute / emit diffs</strong> — <code>silent</code>-tier resources are only counted: they never reach the diff
-   pipeline and never appear in any rendered entry. <code>summary</code>-detail resources are rendered as a
-   title-only collapsible entry (no attribute table, no <code>(known after apply)</code> markers); only the
-   <code>calculate_diff</code> step is skipped. For everything else, before/after attribute values are
-   compared; Terraform's <code>after_unknown</code> markers are resolved recursively into the <code>after</code> value,
-   so a nested unknown leaf becomes <code>(known after apply)</code> inside its containing structure
-   instead of being lost.</li>
-<li><strong>Mask sensitive values</strong> — an attribute whose <code>before_sensitive</code>/<code>after_sensitive</code> subtree has any
+<li>
+<p><strong>Compute detail and causation</strong> — <code>silent</code>-tier resources are only counted: they never reach the
+   detail pipeline and never appear in a rendered entry. <code>summary</code>-detail resources skip
+   <code>calculate_diff</code>, so they show no attribute values or <code>(known after apply)</code> markers, but their
+   forcing paths, stated reason and replacement mechanism still render. Full-detail resources also
+   compare before/after values and recursively resolve Terraform's <code>after_unknown</code> markers, so a
+   nested unknown leaf becomes <code>(known after apply)</code> inside its containing structure instead of being
+   lost.</p>
+</li>
+<li>
+<p><strong>Mask sensitive values</strong> — an attribute whose <code>before_sensitive</code>/<code>after_sensitive</code> subtree has any
    truthy leaf is replaced with <code>(sensitive value)</code> on both sides, unless <code>--show-sensitive</code> is passed.
-   Masking runs before any formatting so no serialization path can bypass it.</li>
+   Masking runs before any formatting so no serialization path can bypass it.</p>
+</li>
 <li><strong>Format cells</strong> — every remaining value passes through one canonical formatter that emits compact
    JSON and escapes the Markdown table delimiter and the code-span backtick. The template receives
    display strings only, so no branch of it can re-derive a value differently.</li>
@@ -1265,7 +1270,7 @@ output easier by producing a structured summary with per-resource diffs.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_datetime" title="August 19, 2026 11:37:22 UTC">2026-08-19 11:37:22</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_datetime" title="August 27, 2026 11:38:30 UTC">2026-08-27 11:38:30</span>
   </span>
 
     
