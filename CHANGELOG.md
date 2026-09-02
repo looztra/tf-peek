@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/looztra/tf-peek/compare/v1.2.0...v1.3.0) (2026-09-02)
+
+
+### Features
+
+* **report:** surface plan causation via replace_paths and action_reason ([#109](https://github.com/looztra/tf-peek/issues/109)) ([321a80a](https://github.com/looztra/tf-peek/commit/321a80a21321a3fbc137d48d71255d7e0be1c34a))
+
 ## [1.2.0](https://github.com/looztra/tf-peek/compare/v1.1.0...v1.2.0) (2026-08-19)
 
 
