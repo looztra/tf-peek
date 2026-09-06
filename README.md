@@ -5,6 +5,7 @@
 [![Code checks](https://github.com/looztra/tf-peek/actions/workflows/code-checks.yaml/badge.svg)](https://github.com/looztra/tf-peek/actions/workflows/code-checks.yaml)
 [![License](https://img.shields.io/pypi/l/tf-peek)](https://github.com/looztra/tf-peek/blob/main/LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-looztra.github.io%2Ftf--peek-blue)](https://looztra.github.io/tf-peek/)
+[![AI Ready](https://img.shields.io/badge/AI--Ready-yes-brightgreen?style=flat)](https://github.com/johnpapa/ai-ready)
 
 **The Terraform plan reviewer that knows what your team considers dangerous.**
 
