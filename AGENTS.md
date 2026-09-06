@@ -10,6 +10,9 @@ Context for AI agents working on this repository (`tf-peek`).
 - **Main branch**: `main`.
 - **Task runners**: `poe` (see `poe_tasks.toml`) and `make` (see `Makefile`, `toolbox/mk/`).
 - **Docs**: user docs in `docs/`, architecture notes in `docs/architecture/`.
+- **GitHub Copilot**: `.github/copilot-instructions.md` holds the Copilot-specific maintenance
+  matrix (what to update when a given file changes) and setup-steps notes; it defers to this file
+  and to `.agents/skills/` for everything else.
 
 ## Skills — read the relevant one before you work
 
