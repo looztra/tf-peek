@@ -37,7 +37,3 @@ jobs:
         with:
           advanced-security: false
           annotations: true
-          # Scoped to this file until the stacked SHA-pinning PR lands and
-          # pins every action repo-wide; widened back to the default
-          # (whole-repo) scan there.
-          inputs: .github/workflows/workflows-checks.yaml
