@@ -108,19 +108,29 @@ jobs:
     needs:
       - pre-commit
     steps:
+      - name: Detect release run
+        id: detect-release
+        env:
+          IS_RELEASE: ${{ ((github.event_name == 'push' && startsWith(github.ref, 'refs/tags')) || (github.event_name == 'pull_request' && github.head_ref == 'release-please--branches--main') || inputs.force_release) && 'true' || 'false' }}
+        run: |
+          echo "is_release=${IS_RELEASE}" >> "${GITHUB_OUTPUT}"
+
       - name: Checkout Code
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
+      # Caching is disabled on release runs so that a poisoned cache entry
+      # cannot influence the distribution published to (Test)PyPI.
       - uses: jdx/mise-action@v4
         with:
           install: true
-          cache: ${{ vars.MISE_CACHE_ENABLED || 'true'}}
+          cache: ${{ steps.detect-release.outputs.is_release == 'true' && 'false' || vars.MISE_CACHE_ENABLED || 'true' }}
           cache_key_prefix: ${{ vars.MISE_CACHE_KEY_PREFIX || 'mise-v0'}}
           version: ${{ vars.MISE_VERSION }}
 
       - name: Restore uv cache
+        if: steps.detect-release.outputs.is_release != 'true'
         uses: actions/cache@v6
         with:
           path: /tmp/.uv-cache
