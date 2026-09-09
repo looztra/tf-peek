@@ -23,3 +23,9 @@ jobs:
         uses: reviewdog/action-actionlint@v1
         with:
           fail_level: error
+
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@v0.6.3
+        with:
+          advanced-security: false
+          annotations: true
