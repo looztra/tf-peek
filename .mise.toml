@@ -5,7 +5,7 @@ editorconfig-checker = "4.0.2"
 shellcheck = "0.11"
 shfmt = "3.14.1"
 taplo = "0.10"
-uv = "0.12.18"
+uv = "0.12.19"
 
 [settings]
 idiomatic_version_file_enable_tools = [
