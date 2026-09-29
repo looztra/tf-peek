@@ -47,7 +47,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5.0.0
         with:
           install: true
           cache: ${{ vars.MISE_CACHE_ENABLED || 'true'}}
@@ -127,7 +127,7 @@ jobs:
 
       # Caching is disabled on release runs so that a poisoned cache entry
       # cannot influence the distribution published to (Test)PyPI.
-      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5.0.0
         with:
           install: true
           cache: ${{ steps.detect-release.outputs.is_release == 'true' && 'false' || vars.MISE_CACHE_ENABLED || 'true' }}
@@ -209,7 +209,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5 # v5.0.0
         with:
           install: true
           cache: ${{ vars.MISE_CACHE_ENABLED || 'true'}}
